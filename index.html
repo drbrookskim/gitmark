@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>gitmark</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { mono: ['JetBrains Mono', 'monospace'] }
+        }
+      }
+    }
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      background: #0d0d0d;
+      color: #e8e8e8;
+      font-family: 'JetBrains Mono', monospace;
+      margin: 0;
+      min-height: 100vh;
+    }
+    #app {
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100vh;
+      position: relative;
+    }
+    ::-webkit-scrollbar { width: 0; }
+    textarea, input { font-family: 'JetBrains Mono', monospace; }
+    .fade-in { animation: fadeIn 0.15s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+    .deleted-mark { opacity: 0.4; }
+  </style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+// ─── 상수 ───────────────────────────────────────────────────────────
+const MAX_CHARS = 280;
+const KOREAN_SURNAMES = ['김','이','박','최','정','강','조','윤','장','임','한','오','서','신','권','황','안','송','류','전','홍','고','문','양','손','배','백','허','유','남'];
+const ENGLISH_NAMES = ['james','john','robert','michael','william','david','mary','patricia','jennifer','linda','minho','junho','jinho','soyeon','minji','hyunji'];
+
+// ─── localStorage 스토어 ────────────────────────────────────────────
+const DB = {
+  get: (key) => JSON.parse(localStorage.getItem('gm_' + key) || 'null'),
+  set: (key, val) => localStorage.setItem('gm_' + key, JSON.stringify(val)),
+  currentUser: () => DB.get('currentUser'),
+  setCurrentUser: (u) => DB.set('currentUser', u),
+  getUsers: () => DB.get('users') || {},
+  setUser: (u) => { const us = DB.getUsers(); us[u.uid] = u; DB.set('users', us); },
+  getPosts: () => DB.get('posts') || [],
+  setPosts: (ps) => DB.set('posts', ps),
+  addPost: (p) => { const ps = DB.getPosts(); ps.unshift(p); DB.setPosts(ps); },
+  getComments: (postId) => (DB.get('comments') || {})[postId] || [],
+  addComment: (postId, c) => {
+    const all = DB.get('comments') || {};
+    all[postId] = all[postId] || [];
+    all[postId].push(c);
+    DB.set('comments', all);
+  },
+  deleteComment: (postId, commentId) => {
+    const all = DB.get('comments') || {};
+    const cs = all[postId] || [];
+    const idx = cs.findIndex(c => c.commentId === commentId);
+    if (idx > -1) { cs[idx].deletedAt = Date.now(); DB.set('comments', all); }
+  },
+  getLikes: () => DB.get('likes') || {},
+  toggleLike: (postId, uid) => {
+    const key = postId + '_' + uid;
+    const likes = DB.getLikes();
+    const ps = DB.getPosts();
+    const idx = ps.findIndex(p => p.postId === postId);
+    if (likes[key]) {
+      delete likes[key];
+      if (idx > -1) ps[idx].likeCount = Math.max(0, (ps[idx].likeCount || 0) - 1);
+    } else {
+      likes[key] = true;
+      if (idx > -1) ps[idx].likeCount = (ps[idx].likeCount || 0) + 1;
+    }
+    DB.set('likes', likes);
+    DB.setPosts(ps);
+    return !!likes[key];
+  },
+  isLiked: (postId, uid) => !!(DB.getLikes()[postId + '_' + uid]),
+  deletePost: (postId) => {
+    const ps = DB.getPosts();
+    const idx = ps.findIndex(p => p.postId === postId);
+    if (idx > -1) { ps[idx].deletedAt = Date.now(); DB.setPosts(ps); }
+  },
+  updatePostCommentCount: (postId, delta) => {
+    const ps = DB.getPosts();
+    const idx = ps.findIndex(p => p.postId === postId);
+    if (idx > -1) { ps[idx].commentCount = Math.max(0, (ps[idx].commentCount || 0) + delta); DB.setPosts(ps); }
+  },
+};
+
+// ─── 유틸 ───────────────────────────────────────────────────────────
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+
+function isPseudonym(nick) {
+  const t = nick.trim();
+  if (/^[가-힣]{2,4}$/.test(t) && KOREAN_SURNAMES.includes(t[0])) return true;
+  if (ENGLISH_NAMES.includes(t.toLowerCase())) return true;
+  return false;
+}
+
+function displayNick(nick, pseudo) {
+  return pseudo ? nick + ' <span class="text-yellow-600 text-xs">(가명)</span>' : nick;
+}
+
+function initial(nick) {
+  return (nick || '?').trim()[0].toUpperCase();
+}
+
+const AVATAR_COLORS = [
+  ['#2d1b69','#c4b5fd'], ['#1e3a5f','#93c5fd'],
+  ['#14532d','#86efac'], ['#713f12','#fde68a'],
+  ['#7f1d1d','#fca5a5'], ['#1e1b4b','#a5b4fc'],
+];
+function avatarColor(nick) {
+  let h = 0;
+  for (let i = 0; i < nick.length; i++) h = nick.charCodeAt(i) + ((h << 5) - h);
+  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+}
+
+function relativeTime(ts) {
+  const diff = Date.now() - ts;
+  const s = Math.floor(diff / 1000), m = Math.floor(s / 60), h = Math.floor(m / 60), d = Math.floor(h / 24);
+  if (s < 60) return '방금 전';
+  if (m < 60) return m + '분 전';
+  if (h < 24) return h + '시간 전';
+  if (d < 7) return d + '일 전';
+  return new Date(ts).toLocaleDateString('ko-KR');
+}
+
+function absTime(ts) {
+  return new Date(ts).toLocaleString('ko-KR', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+}
+
+function avatarEl(nick, size = 36) {
+  const [bg, fg] = avatarColor(nick);
+  const fontSize = size < 30 ? 11 : size < 50 ? 14 : 20;
+  return `<div style="width:${size}px;height:${size}px;background:${bg};color:${fg};border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${fontSize}px;font-weight:500;flex-shrink:0;font-family:'JetBrains Mono',monospace">${initial(nick)}</div>`;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+
+// ─── 라우터 ─────────────────────────────────────────────────────────
+const Router = {
+  go: (path) => { history.pushState({}, '', path); Router.render(); },
+  path: () => location.pathname.replace(/^\/gitmark/, '') || '/',
+  render: () => {
+    const p = Router.path();
+    const user = DB.currentUser();
+    if (!user && p !== '/auth') { Router.go('/auth'); return; }
+    if (user && p === '/auth') { Router.go('/'); return; }
+    const app = document.getElementById('app');
+    app.innerHTML = '';
+    app.className = '';
+    if (p === '/auth') app.appendChild(renderAuth());
+    else if (p === '/write') app.appendChild(renderWrite());
+    else if (p.startsWith('/post/')) app.appendChild(renderDetail(p.replace('/post/', '')));
+    else if (p === '/my') app.appendChild(renderMy());
+    else app.appendChild(renderFeed());
+  }
+};
+
+window.addEventListener('popstate', () => Router.render());
+
+// ─── 공통 컴포넌트 ──────────────────────────────────────────────────
+function tabBar(active) {
+  const d = document.createElement('nav');
+  d.style.cssText = 'position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#0d0d0d;border-top:1px solid #2a2a2a;display:flex;z-index:10;';
+  const tabs = [
+    { icon: '🏠', label: '피드', path: '/' },
+    { icon: '✏', label: '쓰기', path: '/write' },
+    { icon: '👤', label: '내 글', path: '/my' },
+  ];
+  tabs.forEach(t => {
+    const btn = document.createElement('button');
+    btn.innerHTML = `${t.icon} ${t.label}`;
+    btn.style.cssText = `flex:1;padding:12px 0;font-size:11px;font-family:'JetBrains Mono',monospace;background:none;border:none;cursor:pointer;color:${active === t.path ? '#e8e8e8' : '#555'};transition:color .15s;`;
+    btn.onclick = () => Router.go(t.path);
+    d.appendChild(btn);
+  });
+  return d;
+}
+
+// ─── 인증 화면 ──────────────────────────────────────────────────────
+function renderAuth() {
+  let mode = 'login';
+  const wrap = document.createElement('div');
+  wrap.className = 'fade-in';
+  wrap.style.cssText = 'min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;';
+
+  function draw() {
+    wrap.innerHTML = `
+      <div style="width:100%;max-width:360px;">
+        <div style="text-align:center;margin-bottom:28px;">
+          <div style="font-size:22px;letter-spacing:.35em;color:#e8e8e8;margin-bottom:8px;">g i t m a r k</div>
+          <div style="font-size:11px;color:#555;">왔다 갔다는 흔적을 남기는 곳</div>
+        </div>
+
+        ${mode === 'signup' ? `
+        <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:20px;" id="avatar-preview">
+          <div id="av-circle" style="width:56px;height:56px;background:#2d1b69;color:#c4b5fd;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-family:'JetBrains Mono',monospace;transition:all .2s;">?</div>
+          <div id="av-label" style="font-size:11px;color:#555;margin-top:6px;"></div>
+        </div>` : ''}
+
+        <div style="display:flex;border-bottom:1px solid #2a2a2a;margin-bottom:20px;">
+          <button onclick="setMode('login')" style="flex:1;padding:8px 0;font-size:12px;font-family:'JetBrains Mono',monospace;background:none;border:none;border-bottom:${mode==='login'?'1px solid #e8e8e8':'none'};color:${mode==='login'?'#e8e8e8':'#555'};cursor:pointer;">로그인</button>
+          <button onclick="setMode('signup')" style="flex:1;padding:8px 0;font-size:12px;font-family:'JetBrains Mono',monospace;background:none;border:none;border-bottom:${mode==='signup'?'1px solid #e8e8e8':'none'};color:${mode==='signup'?'#e8e8e8':'#555'};cursor:pointer;">가입하기</button>
+        </div>
+
+        <div id="form-area">
+          ${mode === 'signup' ? `
+          <div style="margin-bottom:14px;">
+            <div style="font-size:10px;color:#666;margin-bottom:4px;">닉네임</div>
+            <input id="inp-nick" type="text" placeholder="나를 부를 이름" maxlength="20"
+              style="width:100%;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:4px;padding:8px 10px;font-size:13px;color:#e8e8e8;outline:none;"
+              oninput="updateAvatar()">
+          </div>` : ''}
+          <div style="margin-bottom:14px;">
+            <div style="font-size:10px;color:#666;margin-bottom:4px;">이메일</div>
+            <input id="inp-email" type="email" placeholder="you@email.com"
+              style="width:100%;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:4px;padding:8px 10px;font-size:13px;color:#e8e8e8;outline:none;">
+          </div>
+          <div style="margin-bottom:20px;">
+            <div style="font-size:10px;color:#666;margin-bottom:4px;">비밀번호</div>
+            <div style="position:relative;">
+              <input id="inp-pw" type="password" placeholder="6자 이상"
+                style="width:100%;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:4px;padding:8px 36px 8px 10px;font-size:13px;color:#e8e8e8;outline:none;">
+              <button onclick="togglePw()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:#555;font-size:10px;cursor:pointer;font-family:'JetBrains Mono',monospace;">표시</button>
+            </div>
+          </div>
+          <div id="err-msg" style="color:#f87171;font-size:11px;margin-bottom:10px;display:none;"></div>
+          <button onclick="handleAuth()" style="width:100%;background:#1a1a1a;border:1px solid #3a3a3a;border-radius:4px;padding:10px;font-size:13px;color:#e8e8e8;cursor:pointer;font-family:'JetBrains Mono',monospace;">
+            ${mode === 'login' ? '로그인' : '▶ 흔적 남기기 시작'}
+          </button>
+        </div>
+      </div>`;
+  }
+
+  window.setMode = (m) => { mode = m; draw(); };
+  window.togglePw = () => {
+    const inp = document.getElementById('inp-pw');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+  };
+  window.updateAvatar = () => {
+    const nick = (document.getElementById('inp-nick')?.value || '').trim();
+    const circle = document.getElementById('av-circle');
+    const label = document.getElementById('av-label');
+    if (!circle) return;
+    if (nick) {
+      const [bg, fg] = avatarColor(nick);
+      circle.style.background = bg;
+      circle.style.color = fg;
+      circle.textContent = initial(nick);
+      if (label) {
+        const pseudo = isPseudonym(nick);
+        label.innerHTML = nick + (pseudo ? ' <span style="color:#ca8a04">(가명)</span>' : '');
+      }
+    } else {
+      circle.style.background = '#2d1b69';
+      circle.style.color = '#c4b5fd';
+      circle.textContent = '?';
+      if (label) label.innerHTML = '';
+    }
+  };
+  window.handleAuth = () => {
+    const email = document.getElementById('inp-email')?.value?.trim();
+    const pw = document.getElementById('inp-pw')?.value;
+    const nick = document.getElementById('inp-nick')?.value?.trim();
+    const err = document.getElementById('err-msg');
+
+    const showErr = (msg) => { err.textContent = msg; err.style.display = 'block'; };
+
+    if (!email || !pw) { showErr('이메일과 비밀번호를 입력해주세요.'); return; }
+    if (pw.length < 6) { showErr('비밀번호는 6자 이상이어야 합니다.'); return; }
+
+    const users = DB.getUsers();
+
+    if (mode === 'signup') {
+      if (!nick) { showErr('닉네임을 입력해주세요.'); return; }
+      const exists = Object.values(users).find(u => u.email === email);
+      if (exists) { showErr('이미 사용 중인 이메일입니다.'); return; }
+      const user = { uid: uid(), email, nickname: nick, isPseudonym: isPseudonym(nick), createdAt: Date.now() };
+      DB.setUser(user);
+      DB.setCurrentUser(user);
+    } else {
+      const user = Object.values(users).find(u => u.email === email);
+      if (!user || user.password !== pw) {
+        // 간단한 데모: 비밀번호 저장 (실제 앱에서는 절대 이렇게 하지 않음)
+        // 여기서는 이메일로만 매칭
+        if (!user) { showErr('이메일 또는 비밀번호가 올바르지 않습니다.'); return; }
+      }
+      DB.setCurrentUser(user);
+    }
+
+    if (mode === 'signup') {
+      // 비밀번호 저장 (데모용)
+      const u = DB.currentUser();
+      u.password = pw;
+      DB.setUser(u);
+    }
+
+    Router.go('/');
+  };
+
+  draw();
+  return wrap;
+}
+
+// ─── 피드 화면 ──────────────────────────────────────────────────────
+function renderFeed() {
+  const user = DB.currentUser();
+  const wrap = document.createElement('div');
+  wrap.className = 'fade-in';
+  wrap.style.cssText = 'min-height:100vh;padding-bottom:64px;';
+
+  // 헤더
+  const header = document.createElement('header');
+  header.style.cssText = 'position:sticky;top:0;z-index:10;background:#0d0d0d;border-bottom:1px solid #2a2a2a;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;';
+  header.innerHTML = `
+    <span style="font-size:13px;letter-spacing:.2em;color:#e8e8e8;">gitmark</span>
+    <button onclick="Router.go('/write')" style="font-size:11px;color:#888;background:none;border:none;cursor:pointer;font-family:'JetBrains Mono',monospace;">✏ 흔적 남기기</button>`;
+  wrap.appendChild(header);
+
+  // 포스트 목록
+  const list = document.createElement('div');
+  const posts = DB.getPosts();
+
+  if (posts.length === 0) {
+    list.innerHTML = `<div style="text-align:center;padding:60px 16px;color:#444;font-size:12px;">
+      <div>아직 아무도 다녀가지 않았어요.</div>
+      <button onclick="Router.go('/write')" style="margin-top:16px;font-size:11px;color:#666;background:none;border:none;cursor:pointer;font-family:'JetBrains Mono',monospace;">첫 번째 흔적을 남겨보세요 →</button>
+    </div>`;
+  } else {
+    posts.forEach(post => {
+      list.appendChild(postCard(post, user.uid, () => {
+        list.innerHTML = '';
+        DB.getPosts().forEach(p => list.appendChild(postCard(p, user.uid, () => {})));
+      }));
+    });
+  }
+
+  wrap.appendChild(list);
+  wrap.appendChild(tabBar('/'));
+  return wrap;
+}
+
+function postCard(post, myUid, onUpdate) {
+  const card = document.createElement('div');
+  card.style.cssText = 'border-bottom:1px solid #2a2a2a;padding:14px 16px;cursor:pointer;transition:background .12s;';
+  card.onmouseenter = () => { if (!post.deletedAt) card.style.background = '#111'; };
+  card.onmouseleave = () => { card.style.background = 'transparent'; };
+
+  if (post.deletedAt) {
+    card.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;color:#333;">
+        <span style="font-size:14px;">╳</span>
+        <span style="font-size:11px;">삭제됨 · ${absTime(post.deletedAt)}</span>
+      </div>
+      <div style="font-size:11px;color:#2a2a2a;margin-top:4px;">이 흔적은 지워졌습니다</div>`;
+    return card;
+  }
+
+  const isLiked = DB.isLiked(post.postId, myUid);
+
+  card.innerHTML = `
+    <div style="display:flex;gap:10px;">
+      <div id="av-${post.postId}">${avatarEl(post.authorNickname)}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;">
+          <span style="font-size:13px;color:#e8e8e8;">${displayNick(post.authorNickname, post.authorIsPseudonym)}</span>
+          <span style="font-size:11px;color:#555;">· ${relativeTime(post.updatedAt)}</span>
+        </div>
+        <div style="margin-top:8px;font-size:13px;color:#ccc;line-height:1.6;word-break:break-word;">${escHtml(post.content)}</div>
+        <div style="display:flex;align-items:center;gap:14px;margin-top:10px;">
+          <button id="like-${post.postId}" onclick="handleLikeCard('${post.postId}','${myUid}',this)" style="display:flex;align-items:center;gap:4px;font-size:12px;color:${isLiked?'#f472b6':'#555'};background:none;border:none;cursor:pointer;font-family:'JetBrains Mono',monospace;padding:0;transition:color .15s;">
+            <span>${isLiked ? '♥' : '♡'}</span><span id="lc-${post.postId}">${post.likeCount || 0}</span>
+          </button>
+          <span style="font-size:12px;color:#555;">💬 ${post.commentCount || 0}</span>
+          ${post.authorUid === myUid ? `<button onclick="handleDeleteCard(event,'${post.postId}')" style="margin-left:auto;font-size:11px;color:#444;background:none;border:none;cursor:pointer;font-family:'JetBrains Mono',monospace;padding:0;">삭제</button>` : ''}
+        </div>
+      </div>
+    </div>`;
+
+  card.onclick = (e) => {
+    if (e.target.tagName === 'BUTTON') return;
+    Router.go('/post/' + post.postId);
+  };
+
+  return card;
+}
+
+window.handleLikeCard = (postId, myUid, btn) => {
+  const nowLiked = DB.toggleLike(postId, myUid);
+  btn.style.color = nowLiked ? '#f472b6' : '#555';
+  btn.querySelector('span').textContent = nowLiked ? '♥' : '♡';
+  const lc = document.getElementById('lc-' + postId);
+  if (lc) lc.textContent = DB.getPosts().find(p => p.postId === postId)?.likeCount || 0;
+};
+
+window.handleDeleteCard = (e, postId) => {
+  e.stopPropagation();
+  if (!confirm('이 흔적을 지우시겠어요? 삭제 시각은 남습니다.')) return;
+  DB.deletePost(postId);
+  Router.render();
+};
+
+// ─── 글쓰기 화면 ─────────────────────────────────────────────────────
+function renderWrite() {
+  const user = DB.currentUser();
+  const wrap = document.createElement('div');
+  wrap.className = 'fade-in';
+  wrap.style.cssText = 'min-height:100vh;display:flex;flex-direction:column;';
+
+  wrap.innerHTML = `
+    <header style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #2a2a2a;">
+      <button onclick="Router.go('/')" style="font-size:12px;color:#555;background:none;border:none;cursor:pointer;font-family:'JetBrains Mono',monospace;">취소</button>
+      <button id="submit-btn" onclick="submitPost()" disabled style="font-size:12px;color:#e8e8e8;background:#1a1a1a;border:1px solid #3a3a3a;border-radius:4px;padding:6px 14px;cursor:pointer;font-family:'JetBrains Mono',monospace;opacity:.3;">남기기</button>
+    </header>
+    <div style="padding:16px;flex:1;">
+      <div style="font-size:11px;color:#555;margin-bottom:10px;">${user.nickname}${user.isPseudonym ? ' <span style="color:#ca8a04">(가명)</span>' : ''}</div>
+      <textarea id="post-content" placeholder="왔다 갔다는 흔적을 남기세요"
+        style="width:100%;background:transparent;border:none;outline:none;resize:none;font-size:13px;color:#e8e8e8;line-height:1.7;min-height:calc(100vh - 200px);"
+        oninput="updateCounter()"></textarea>
+    </div>
+    <div style="position:sticky;bottom:0;background:#0d0d0d;border-top:1px solid #2a2a2a;padding:12px 16px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="flex:1;height:3px;background:#1a1a1a;border-radius:2px;overflow:hidden;">
+          <div id="progress-bar" style="height:100%;background:#555;border-radius:2px;transition:width .1s,background .1s;width:0%;"></div>
+        </div>
+        <span id="char-count" style="font-size:11px;color:#555;min-width:28px;text-align:right;">${MAX_CHARS}</span>
+      </div>
+    </div>`;
+
+  window.updateCounter = () => {
+    const ta = document.getElementById('post-content');
+    const len = ta.value.length;
+    const remaining = MAX_CHARS - len;
+    const pct = Math.min((len / MAX_CHARS) * 100, 100);
+    const bar = document.getElementById('progress-bar');
+    const cc = document.getElementById('char-count');
+    const btn = document.getElementById('submit-btn');
+    bar.style.width = pct + '%';
+    bar.style.background = len > MAX_CHARS ? '#ef4444' : pct > 90 ? '#eab308' : '#555';
+    cc.textContent = remaining;
+    cc.style.color = len > MAX_CHARS ? '#f87171' : remaining < 20 ? '#eab308' : '#555';
+    btn.disabled = len === 0 || len > MAX_CHARS;
+    btn.style.opacity = (len === 0 || len > MAX_CHARS) ? '.3' : '1';
+  };
+
+  window.submitPost = () => {
+    const content = document.getElementById('post-content')?.value?.trim();
+    if (!content || content.length > MAX_CHARS) return;
+    const now = Date.now();
+    DB.addPost({
+      postId: uid(),
+      authorUid: user.uid,
+      authorNickname: user.nickname,
+      authorIsPseudonym: user.isPseudonym,
+      content,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+      likeCount: 0,
+      commentCount: 0,
+    });
+    Router.go('/');
+  };
+
+  setTimeout(() => document.getElementById('post-content')?.focus(), 50);
+  return wrap;
+}
+
+// ─── 게시물 상세 ─────────────────────────────────────────────────────
+function renderDetail(postId) {
+  const user = DB.currentUser();
+  const posts = DB.getPosts();
+  const post = posts.find(p => p.postId === postId);
+  const wrap = document.createElement('div');
+  wrap.className = 'fade-in';
+  wrap.style.cssText = 'min-height:100vh;padding-bottom:70px;';
+
+  if (!post) {
+    wrap.innerHTML = '<div style="text-align:center;padding:60px;color:#444;font-size:12px;">게시물을 찾을 수 없습니다.</div>';
+    return wrap;
+  }
+
+  const isLiked = DB.isLiked(postId, user.uid);
+  const isOwner = post.authorUid === user.uid;
+
+  function renderComments() {
+    const all = DB.getComments(postId);
+    const top = all.filter(c => !c.parentCommentId);
+    const replies = (pid) => all.filter(c => c.parentCommentId === pid);
+    return top.map(c => commentHtml(c, replies(c.commentId), user.uid, isOwner)).join('');
+  }
+
+  wrap.innerHTML = `
+    <header style="position:sticky;top:0;z-index:10;background:#0d0d0d;border-bottom:1px solid #2a2a2a;padding:12px 16px;">
+      <button onclick="Router.go('/')" style="font-size:12px;color:#555;background:none;border:none;cursor:pointer;font-family:'JetBrains Mono',monospace;">← 피드로</button>
+    </header>
+
+    <div style="padding:16px 16px 14px;border-bottom:1px solid #2a2a2a;">
+      ${post.deletedAt ? `
+        <div style="color:#333;font-size:12px;">╳ 삭제됨 · ${absTime(post.deletedAt)}</div>
+        <div style="font-size:11px;color:#222;margin-top:4px;">이 흔적은 지워졌습니다</div>
+      ` : `
+        <div style="display:flex;gap:12px;align-items:flex-start;">
+          ${avatarEl(post.authorNickname, 42)}
+          <div>
+            <div style="font-size:13px;color:#e8e8e8;">${displayNick(post.authorNickname, post.authorIsPseudonym)}</div>
+            <div style="font-size:11px;color:#555;margin-top:2px;">${relativeTime(post.updatedAt)}</div>
+          </div>
+        </div>
+        <div style="margin-top:14px;font-size:14px;color:#ccc;line-height:1.7;word-break:break-word;">${escHtml(post.content)}</div>
+        <div style="display:flex;align-items:center;gap:14px;margin-top:14px;">
+          <button id="like-detail" onclick="handleLikeDetail()" style="display:flex;align-items:center;gap:4px;font-size:13px;color:${isLiked?'#f472b6':'#555'};background:none;border:none;cursor:pointer;font-family:'JetBrains Mono',monospace;padding:0;">
+            <span id="like-icon">${isLiked?'♥':'♡'}</span>
+            <span id="like-count-detail">${post.likeCount || 0}</span>
+          </button>
+          <span style="font-size:12px;color:#555;">💬 <span id="comment-count-detail">${post.commentCount || 0}</span></span>
+          ${isOwner ? `<button onclick="handleDeleteDetail()" style="margin-left:auto;font-size:11px;color:#444;background:none;border:none;cursor:pointer;font-family:'JetBrains Mono',monospace;">삭제</button>` : ''}
+        </div>
+      `}
+    </div>
+
+    <div id="comment-list">${renderComments()}</div>
+
+    <div style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#0d0d0d;border-top:1px solid #2a2a2a;padding:10px 16px;">
+      <div id="reply-banner" style="display:none;font-size:10px;color:#555;margin-bottom:6px;display:flex;justify-content:space-between;">
+        <span>답글 작성 중</span><button onclick="clearReply()" style="background:none;border:none;color:#444;cursor:pointer;font-size:10px;">취소</button>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input id="comment-inp" type="text" placeholder="흔적을 남기세요"
+          style="flex:1;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:4px;padding:8px 10px;font-size:12px;color:#e8e8e8;outline:none;font-family:'JetBrains Mono',monospace;"
+          onkeydown="if(event.key==='Enter')submitComment()">
+        <button onclick="submitComment()" style="font-size:16px;color:#555;background:none;border:none;cursor:pointer;padding:4px;">↑</button>
+      </div>
+    </div>`;
+
+  let replyToId = null;
+  window.setReply = (commentId, nick) => {
+    replyToId = commentId;
+    const b = document.getElementById('reply-banner');
+    if (b) { b.style.display = 'flex'; b.querySelector('span').textContent = `@${nick}에 답글`; }
+    document.getElementById('comment-inp')?.focus();
+  };
+  window.clearReply = () => {
+    replyToId = null;
+    const b = document.getElementById('reply-banner');
+    if (b) b.style.display = 'none';
+  };
+  window.handleLikeDetail = () => {
+    const nowLiked = DB.toggleLike(postId, user.uid);
+    document.getElementById('like-icon').textContent = nowLiked ? '♥' : '♡';
+    document.getElementById('like-detail').style.color = nowLiked ? '#f472b6' : '#555';
+    const lc = DB.getPosts().find(p => p.postId === postId)?.likeCount || 0;
+    document.getElementById('like-count-detail').textContent = lc;
+  };
+  window.handleDeleteDetail = () => {
+    if (!confirm('이 흔적을 지우시겠어요? 삭제 시각은 남습니다.')) return;
+    DB.deletePost(postId);
+    Router.go('/');
+  };
+  window.deleteComment = (commentId) => {
+    if (!confirm('댓글을 삭제할까요?')) return;
+    DB.deleteComment(postId, commentId);
+    DB.updatePostCommentCount(postId, -1);
+    document.getElementById('comment-list').innerHTML = renderComments();
+    const cc = document.getElementById('comment-count-detail');
+    if (cc) cc.textContent = DB.getPosts().find(p => p.postId === postId)?.commentCount || 0;
+  };
+  window.submitComment = () => {
+    const inp = document.getElementById('comment-inp');
+    const text = inp?.value?.trim();
+    if (!text) return;
+    DB.addComment(postId, {
+      commentId: uid(),
+      postId,
+      parentCommentId: replyToId,
+      authorUid: user.uid,
+      authorNickname: user.nickname,
+      authorIsPseudonym: user.isPseudonym,
+      content: text,
+      createdAt: Date.now(),
+      deletedAt: null,
+    });
+    DB.updatePostCommentCount(postId, 1);
+    inp.value = '';
+    clearReply();
+    document.getElementById('comment-list').innerHTML = renderComments();
+    const cc = document.getElementById('comment-count-detail');
+    if (cc) cc.textContent = DB.getPosts().find(p => p.postId === postId)?.commentCount || 0;
+  };
+
+  return wrap;
+}
+
+function commentHtml(c, replies, myUid) {
+  const isOwner = c.authorUid === myUid;
+  if (c.deletedAt) {
+    return `<div style="padding:10px 16px;border-bottom:1px solid #1e1e1e;">
+      <div style="display:flex;align-items:center;gap:6px;color:#333;font-size:11px;">
+        <span>●</span><span>삭제됨 · ${absTime(c.deletedAt)}</span>
+      </div>
+    </div>` + replies.map(r => replyHtml(r, myUid)).join('');
+  }
+  return `<div style="padding:10px 16px;border-bottom:1px solid #1e1e1e;">
+    <div style="display:flex;gap:8px;">
+      ${avatarEl(c.authorNickname, 28)}
+      <div style="flex:1;">
+        <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;">
+          <span style="font-size:12px;color:#e8e8e8;">${displayNick(c.authorNickname, c.authorIsPseudonym)}</span>
+          <span style="font-size:10px;color:#444;">· ${relativeTime(c.createdAt)}</span>
+        </div>
+        <div style="font-size:12px;color:#bbb;margin-top:4px;line-height:1.5;word-break:break-word;">${escHtml(c.content)}</div>
+        <div style="display:flex;gap:10px;margin-top:6px;">
+          <button onclick="setReply('${c.commentId}','${c.authorNickname}')" style="font-size:10px;color:#444;background:none;border:none;cursor:pointer;font-family:'JetBrains Mono',monospace;padding:0;">답글</button>
+          ${isOwner ? `<button onclick="deleteComment('${c.commentId}')" style="font-size:10px;color:#444;background:none;border:none;cursor:pointer;font-family:'JetBrains Mono',monospace;padding:0;transition:color .15s;" onmouseenter="this.style.color='#f87171'" onmouseleave="this.style.color='#444'">삭제</button>` : ''}
+        </div>
+      </div>
+    </div>
+  </div>` + replies.map(r => replyHtml(r, myUid)).join('');
+}
+
+function replyHtml(r, myUid) {
+  const isOwner = r.authorUid === myUid;
+  if (r.deletedAt) {
+    return `<div style="padding:8px 16px 8px 52px;border-bottom:1px solid #181818;">
+      <div style="font-size:10px;color:#2a2a2a;">● 삭제됨 · ${absTime(r.deletedAt)}</div>
+    </div>`;
+  }
+  return `<div style="padding:8px 16px 8px 52px;border-bottom:1px solid #181818;">
+    <div style="display:flex;gap:8px;">
+      ${avatarEl(r.authorNickname, 24)}
+      <div style="flex:1;">
+        <div style="display:flex;align-items:baseline;gap:6px;">
+          <span style="font-size:11px;color:#e8e8e8;">${displayNick(r.authorNickname, r.authorIsPseudonym)}</span>
+          <span style="font-size:10px;color:#444;">· ${relativeTime(r.createdAt)}</span>
+        </div>
+        <div style="font-size:11px;color:#aaa;margin-top:3px;line-height:1.5;word-break:break-word;">${escHtml(r.content)}</div>
+        ${isOwner ? `<button onclick="deleteComment('${r.commentId}')" style="font-size:10px;color:#444;background:none;border:none;cursor:pointer;font-family:'JetBrains Mono',monospace;padding:0;margin-top:4px;">삭제</button>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
+// ─── 마이페이지 ──────────────────────────────────────────────────────
+function renderMy() {
+  const user = DB.currentUser();
+  const posts = DB.getPosts().filter(p => p.authorUid === user.uid);
+  const wrap = document.createElement('div');
+  wrap.className = 'fade-in';
+  wrap.style.cssText = 'min-height:100vh;padding-bottom:64px;';
+
+  const header = document.createElement('header');
+  header.style.cssText = 'position:sticky;top:0;z-index:10;background:#0d0d0d;border-bottom:1px solid #2a2a2a;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;';
+  header.innerHTML = `
+    <button onclick="Router.go('/')" style="font-size:12px;color:#555;background:none;border:none;cursor:pointer;font-family:'JetBrains Mono',monospace;">←</button>
+    <span style="font-size:12px;color:#888;">내 흔적 모음</span>
+    <button onclick="handleLogout()" style="font-size:11px;color:#444;background:none;border:none;cursor:pointer;font-family:'JetBrains Mono',monospace;">로그아웃</button>`;
+  wrap.appendChild(header);
+
+  const profile = document.createElement('div');
+  profile.style.cssText = 'display:flex;flex-direction:column;align-items:center;padding:24px 16px;border-bottom:1px solid #2a2a2a;gap:10px;';
+  profile.innerHTML = `
+    ${avatarEl(user.nickname, 52)}
+    <div style="text-align:center;">
+      <div style="font-size:13px;color:#e8e8e8;">${displayNick(user.nickname, user.isPseudonym)}</div>
+      <div style="font-size:11px;color:#444;margin-top:4px;">내가 남긴 흔적 ${posts.filter(p => !p.deletedAt).length}개</div>
+    </div>`;
+  wrap.appendChild(profile);
+
+  const tabLabel = document.createElement('div');
+  tabLabel.style.cssText = 'padding:10px 16px;border-bottom:1px solid #2a2a2a;font-size:11px;color:#e8e8e8;';
+  tabLabel.textContent = `내 글 (${posts.length})`;
+  wrap.appendChild(tabLabel);
+
+  if (posts.length === 0) {
+    const empty = document.createElement('div');
+    empty.style.cssText = 'text-align:center;padding:40px;color:#444;font-size:11px;';
+    empty.textContent = '아직 남긴 흔적이 없어요.';
+    wrap.appendChild(empty);
+  } else {
+    const list = document.createElement('div');
+    posts.forEach(p => {
+      list.appendChild(postCard(p, user.uid, () => {}));
+    });
+    wrap.appendChild(list);
+  }
+
+  wrap.appendChild(tabBar('/my'));
+
+  window.handleLogout = () => {
+    DB.setCurrentUser(null);
+    Router.go('/auth');
+  };
+
+  return wrap;
+}
+
+// ─── 초기화 ─────────────────────────────────────────────────────────
+Router.render();
+</script>
+</body>
+</html>
