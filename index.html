@@ -42,10 +42,27 @@
       min-height: 100vh;
       transition: background .2s, color .2s;
     }
+    /* 도트 배경 패턴 */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
+      background-size: 24px 24px;
+      opacity: .45;
+    }
+    /* 좌/우 워터마크 */
+    body::after {
+      content: 'gitmark · 흔적 · gitmark · 흔적 · gitmark · 흔적';
+      position: fixed; left: 14px; top: 50%; z-index: 0; pointer-events: none;
+      writing-mode: vertical-rl; letter-spacing: .3em;
+      font-size: 10px; color: var(--border); transform: translateY(-50%);
+      white-space: nowrap; user-select: none;
+    }
     #app {
-      max-width: 480px;
+      max-width: 680px;
       margin: 0 auto;
       min-height: 100vh;
+      position: relative; z-index: 1;
     }
     input, textarea, button {
       font-family: 'JetBrains Mono', 'Courier New', monospace;
@@ -53,7 +70,6 @@
     ::-webkit-scrollbar { width: 0; }
     .screen { animation: fi .12s ease; }
     @keyframes fi { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; } }
-    .card:hover { background: var(--bg-elevated) !important; }
     .btn-ghost {
       background: none; border: none; cursor: pointer;
       color: var(--text-muted); font-size: 11px; padding: 0;
@@ -72,7 +88,7 @@
     .input-field::placeholder { color: var(--text-dim); }
     .tab-bar {
       position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
-      width: 100%; max-width: 480px;
+      width: 100%; max-width: 680px;
       background: var(--bg); border-top: 1px solid var(--border);
       display: flex; z-index: 20;
     }
@@ -84,7 +100,7 @@
     .sticky-header {
       position: sticky; top: 0; z-index: 10;
       background: var(--bg); border-bottom: 1px solid var(--border);
-      padding: 12px 16px; display: flex;
+      padding: 12px 20px; display: flex;
       align-items: center; justify-content: space-between;
     }
     .avatar {
@@ -92,9 +108,73 @@
       justify-content: center; font-weight: 500; flex-shrink: 0;
     }
     .like-btn { background: none; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; gap: 4px; transition: color .15s; }
-    .del-btn { background: none; border: none; cursor: pointer; padding: 0; font-size: 11px; color: var(--text-dim); transition: color .15s; margin-left: auto; }
+    .del-btn { background: none; border: none; cursor: pointer; padding: 0; font-size: 11px; color: var(--text-dim); transition: color .15s; }
     .del-btn:hover { color: #f87171; }
     textarea { resize: none; background: transparent; border: none; outline: none; color: var(--text); width: 100%; line-height: 1.7; }
+
+    /* ── 3D 스파인 ─────────────────────────────────────────────── */
+    .feed-spine-wrap {
+      position: relative; padding-left: 64px; padding-right: 20px;
+    }
+    .spine {
+      position: absolute; left: 22px; top: 0; bottom: 0; width: 14px;
+    }
+    .spine-s { position: absolute; left: 0;   top:0; bottom:0; width: 2px;   background: var(--text-dim);    border-radius: 2px; opacity: .4; }
+    .spine-m { position: absolute; left: 3px; top:0; bottom:0; width: 2.5px; background: var(--text-muted);  border-radius: 2px; }
+    .spine-h { position: absolute; left: 7px; top:0; bottom:0; width: 1.5px; background: var(--bg);          border-radius: 2px; opacity: .6; }
+    .spine-e { position: absolute; left: 10px;top:0; bottom:0; width: 1.5px; background: var(--text-dim);    border-radius: 2px; opacity: .3; }
+
+    /* ── 타일 카드 ─────────────────────────────────────────────── */
+    .card-row { position: relative; margin-bottom: 10px; }
+
+    .tile-node {
+      position: absolute; left: -42px; top: 18px;
+      width: 18px; height: 18px; pointer-events: none;
+    }
+    .tile-node-s { position:absolute; inset:2px; border-radius:50%; background:var(--text-dim); opacity:.35; }
+    .tile-node-b { position:absolute; inset:1px; border-radius:50%; background:var(--bg-surface); border:1.5px solid var(--border); }
+    .tile-node-h { position:absolute; top:3px; left:4px; width:5px; height:3px; border-radius:50%; background:var(--bg); opacity:.75; }
+
+    .tile-conn {
+      position: absolute; left: -24px; top: 27px;
+      width: 24px; height: 1.5px; background: var(--border); opacity: .7;
+      pointer-events: none;
+    }
+
+    .tile {
+      background: var(--bg-surface);
+      border: 0.5px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px 11px;
+      cursor: pointer;
+      transition: transform .12s, box-shadow .12s;
+      border-left-width: 3px;
+    }
+    .tile:hover { transform: translateX(3px); }
+
+    .tile-body {
+      font-size: 13px; color: var(--text-body); line-height: 1.65;
+      word-break: break-word; margin-bottom: 11px;
+    }
+    .tile-divider {
+      border: none; border-top: 0.5px solid var(--border);
+      margin: 0 -16px 9px;
+    }
+    .tile-meta-row {
+      display: flex; align-items: center; gap: 7px; margin-bottom: 7px;
+    }
+    .tile-nick { font-size: 12px; color: var(--text); }
+    .tile-time { font-size: 10px; color: var(--text-dim); margin-left: auto; }
+    .tile-stats {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .tile-stat { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 3px; }
+
+    .tile-del-badge {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 11px; color: var(--text-dim); margin-bottom: 4px;
+    }
+    .tile-del-sub { font-size: 10px; color: var(--text-dim); font-style: italic; }
 
     /* ── 테마 토글 버튼 ─────────────────────────────────────────── */
     #theme-toggle {
@@ -365,7 +445,7 @@ function feedPage() {
 
   var hdr = document.createElement('div');
   hdr.className = 'sticky-header';
-  hdr.innerHTML = '<span style="font-size:13px;letter-spacing:.2em;">gitmark</span>';
+  hdr.innerHTML = '<span style="font-size:13px;letter-spacing:.22em;">gitmark</span>';
   var writeBtn = document.createElement('button');
   writeBtn.className = 'btn-ghost';
   writeBtn.style.fontSize = '12px';
@@ -374,49 +454,82 @@ function feedPage() {
   hdr.appendChild(writeBtn);
   wrap.appendChild(hdr);
 
-  var list = document.createElement('div');
   var posts = S.posts();
   if (posts.length === 0) {
-    list.innerHTML = '<div style="text-align:center;padding:60px 16px;color:var(--text-dim);"><div style="margin-bottom:14px;">아직 아무도 다녀가지 않았어요.</div><button onclick="R.go(\'/write\')" style="font-size:11px;color:var(--text-muted);background:none;border:none;cursor:pointer;">첫 번째 흔적을 남겨보세요 →</button></div>';
+    var empty = document.createElement('div');
+    empty.style.cssText = 'text-align:center;padding:80px 20px;color:var(--text-dim);';
+    empty.innerHTML = '<div style="margin-bottom:14px;">아직 아무도 다녀가지 않았어요.</div><button onclick="R.go(\'/write\')" style="font-size:11px;color:var(--text-muted);background:none;border:none;cursor:pointer;">첫 번째 흔적을 남겨보세요 →</button>';
+    wrap.appendChild(empty);
   } else {
-    posts.forEach(function(post) { list.appendChild(makeCard(post, me)); });
+    var spineWrap = document.createElement('div');
+    spineWrap.className = 'feed-spine-wrap';
+    spineWrap.style.cssText = 'padding-top:20px;';
+
+    // 3D 스파인
+    var spine = document.createElement('div');
+    spine.className = 'spine';
+    spine.innerHTML = '<div class="spine-s"></div><div class="spine-m"></div><div class="spine-h"></div><div class="spine-e"></div>';
+    spineWrap.appendChild(spine);
+
+    posts.forEach(function(post) { spineWrap.appendChild(makeCard(post, me)); });
+    wrap.appendChild(spineWrap);
   }
-  wrap.appendChild(list);
   wrap.appendChild(tabBar('/'));
   return wrap;
 }
 
+function postOpacity(post) {
+  if (post.del) return 0.45;
+  var h = (Date.now() - (post.upd || post.at)) / 3600000;
+  if (h < 1) return 1;
+  if (h < 6) return 0.88;
+  if (h < 24) return 0.72;
+  if (h < 72) return 0.58;
+  return 0.46;
+}
+
 function makeCard(post, me) {
-  var el = document.createElement('div');
-  el.className = 'card';
-  el.style.cssText = 'border-bottom:1px solid var(--border);padding:14px 16px;cursor:pointer;transition:background .12s;';
+  var row = document.createElement('div');
+  row.className = 'card-row';
+
+  // 노드 (구체)
+  row.innerHTML = '<div class="tile-node"><div class="tile-node-s"></div><div class="tile-node-b"></div><div class="tile-node-h"></div></div><div class="tile-conn"></div>';
+
+  var c = nick2color(post.nick);
+  var op = postOpacity(post);
+  var tile = document.createElement('div');
+  tile.className = 'tile';
+  tile.style.cssText = 'border-left-color:'+c[1]+';opacity:'+op+';';
 
   if (post.del) {
-    el.innerHTML = '<div style="display:flex;align-items:center;gap:8px;color:var(--text-dim);"><span>╳</span><span style="font-size:11px;">삭제됨 · '+absTime(post.del)+'</span></div><div style="font-size:11px;color:var(--text-dim);margin-top:4px;">이 흔적은 지워졌습니다</div>';
-    return el;
+    tile.innerHTML = [
+      '<div class="tile-del-badge"><span>╳</span><span>삭제됨 · '+absTime(post.del)+'</span></div>',
+      '<div class="tile-del-sub">이 흔적은 지워졌습니다</div>'
+    ].join('');
+    row.appendChild(tile);
+    return row;
   }
 
   var liked = S.isLiked(post.id, me.uid);
-  el.innerHTML = [
-    '<div style="display:flex;gap:10px;">',
-    avatar(post.nick),
-    '<div style="flex:1;min-width:0;">',
-    '<div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;margin-bottom:8px;">',
-    '<span style="font-size:13px;color:var(--text);">'+nickHtml(post.nick, post.pseudo)+'</span>',
-    '<span style="font-size:11px;color:var(--text-muted);">· '+relTime(post.upd||post.at)+'</span>',
+  tile.innerHTML = [
+    '<div class="tile-body">'+esc(post.txt)+'</div>',
+    '<hr class="tile-divider">',
+    '<div class="tile-meta-row">',
+    avatar(post.nick, 22),
+    '<span class="tile-nick">'+nickHtml(post.nick, post.pseudo)+'</span>',
+    '<span class="tile-time">'+relTime(post.upd||post.at)+'</span>',
     '</div>',
-    '<div style="font-size:13px;color:var(--text-body);line-height:1.65;word-break:break-word;">'+esc(post.txt)+'</div>',
-    '<div style="display:flex;align-items:center;gap:14px;margin-top:10px;">',
-    '<button class="like-btn" id="lbtn-'+post.id+'" style="color:'+(liked?'#f472b6':'var(--text-muted)')+';">',
+    '<div class="tile-stats">',
+    '<button class="like-btn tile-stat" id="lbtn-'+post.id+'" style="color:'+(liked?'#f472b6':'var(--text-muted)')+';">',
     '<span id="lico-'+post.id+'">'+(liked?'♥':'♡')+'</span>',
-    '<span style="font-size:12px;" id="lcnt-'+post.id+'">'+(post.likes||0)+'</span>',
+    '<span id="lcnt-'+post.id+'">'+(post.likes||0)+'</span>',
     '</button>',
-    '<span style="font-size:12px;color:var(--text-muted);">💬 '+(post.comments||0)+'</span>',
-    me.uid===post.uid ? '<button class="del-btn" id="delbtn-'+post.id+'">삭제</button>' : '',
-    '</div></div></div>'
+    '<span class="tile-stat">💬 '+(post.comments||0)+'</span>',
+    me.uid===post.uid ? '<button class="del-btn" style="margin-left:auto;" id="delbtn-'+post.id+'">삭제</button>' : '',
+    '</div>'
   ].join('');
 
-  el.querySelector('#lbtn-'+post.id).onclick = function(e) {
+  tile.querySelector('#lbtn-'+post.id).onclick = function(e) {
     e.stopPropagation();
     var now = S.toggleLike(post.id, me.uid);
     this.style.color = now ? '#f472b6' : 'var(--text-muted)';
@@ -424,14 +537,15 @@ function makeCard(post, me) {
     document.getElementById('lcnt-'+post.id).textContent = (S.getPost(post.id)||{}).likes||0;
   };
   if (me.uid===post.uid) {
-    el.querySelector('#delbtn-'+post.id).onclick = function(e) {
+    tile.querySelector('#delbtn-'+post.id).onclick = function(e) {
       e.stopPropagation();
       if (!confirm('이 흔적을 지우시겠어요? 삭제 시각은 남습니다.')) return;
       S.deletePost(post.id); R.render();
     };
   }
-  el.onclick = function() { R.go('/post/'+post.id); };
-  return el;
+  tile.onclick = function() { R.go('/post/'+post.id); };
+  row.appendChild(tile);
+  return row;
 }
 
 // ── 글쓰기 페이지 ────────────────────────────────────────────────────
@@ -626,7 +740,7 @@ function detailPage(pid) {
   }
 
   var cInput = document.createElement('div');
-  cInput.style.cssText = 'position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--bg);border-top:1px solid var(--border);padding:10px 16px;z-index:10;';
+  cInput.style.cssText = 'position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:680px;background:var(--bg);border-top:1px solid var(--border);padding:10px 16px;z-index:10;';
   var inp = document.createElement('input');
   inp.id = 'd-inp';
   inp.type = 'text';
@@ -747,9 +861,15 @@ function myPage() {
     empty.textContent = '아직 남긴 흔적이 없어요.';
     wrap.appendChild(empty);
   } else {
-    var list = document.createElement('div');
-    posts.forEach(function(p) { list.appendChild(makeCard(p, me)); });
-    wrap.appendChild(list);
+    var spineWrap = document.createElement('div');
+    spineWrap.className = 'feed-spine-wrap';
+    spineWrap.style.cssText = 'padding-top:16px;';
+    var spine = document.createElement('div');
+    spine.className = 'spine';
+    spine.innerHTML = '<div class="spine-s"></div><div class="spine-m"></div><div class="spine-h"></div><div class="spine-e"></div>';
+    spineWrap.appendChild(spine);
+    posts.forEach(function(p) { spineWrap.appendChild(makeCard(p, me)); });
+    wrap.appendChild(spineWrap);
   }
 
   wrap.appendChild(tabBar('/my'));
