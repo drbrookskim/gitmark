@@ -377,6 +377,7 @@ var R = {
     else if (p === '/write') app.appendChild(writePage());
     else if (p.indexOf('/post/') === 0) app.appendChild(detailPage(p.slice(6)));
     else if (p === '/my') app.appendChild(myPage());
+    else if (p === '/profile') app.appendChild(profilePage());
     else app.appendChild(feedPage());
   }
 };
@@ -392,9 +393,10 @@ if (DEV_SKIP_AUTH && !S.me()) {
 // ── 공통: 탭바 ──────────────────────────────────────────────────────
 function tabBar(active) {
   var tabs = [
-    {icon:'ti-home',     label:'피드',  path:'/'},
-    {icon:'ti-pencil',   label:'쓰기',  path:'/write'},
-    {icon:'ti-user',     label:'내 글', path:'/my'}
+    {icon:'ti-home',         label:'피드',  path:'/'},
+    {icon:'ti-pencil',       label:'쓰기',  path:'/write'},
+    {icon:'ti-notes',        label:'내 글', path:'/my'},
+    {icon:'ti-user-circle',  label:'마이',  path:'/profile'}
   ];
   var nav = document.createElement('nav');
   nav.className = 'tab-bar';
@@ -687,7 +689,41 @@ function writePage() {
 
   var body = document.createElement('div');
   body.style.cssText = 'padding:14px 16px;flex:1;';
-  body.innerHTML = '<div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">'+nickHtml(me.nick, me.pseudo)+'</div>';
+
+  var nickBar = document.createElement('div');
+  nickBar.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:12px;';
+
+  function renderWriteNick(editing) {
+    me = S.me();
+    if (editing) {
+      nickBar.innerHTML = [
+        avatar(me.nick, 24),
+        '<input id="w-nick-inp" class="input-field" type="text" value="'+esc(me.nick)+'" maxlength="20"',
+        ' style="flex:1;padding:3px 8px;font-size:12px;height:28px;">',
+        '<button id="w-nick-save" style="font-size:11px;padding:3px 8px;background:var(--bg-surface);border:0.5px solid var(--border);border-radius:4px;cursor:pointer;color:var(--text);">저장</button>',
+        '<button id="w-nick-cancel" style="font-size:11px;padding:3px 8px;background:none;border:none;cursor:pointer;color:var(--text-dim);">취소</button>'
+      ].join('');
+      var inp = nickBar.querySelector('#w-nick-inp');
+      inp.focus(); inp.select();
+      nickBar.querySelector('#w-nick-save').onclick = function() {
+        var v = inp.value.trim();
+        if (!v) return;
+        S.updateNick(v);
+        me = S.me();
+        renderWriteNick(false);
+      };
+      nickBar.querySelector('#w-nick-cancel').onclick = function() { renderWriteNick(false); };
+    } else {
+      nickBar.innerHTML = [
+        avatar(me.nick, 24),
+        '<span style="font-size:12px;">'+nickHtml(me.nick, me.pseudo)+'</span>',
+        '<button id="w-nick-edit" style="background:none;border:none;cursor:pointer;font-size:10px;color:var(--text-dim);padding:0;">✏</button>'
+      ].join('');
+      nickBar.querySelector('#w-nick-edit').onclick = function() { renderWriteNick(true); };
+    }
+  }
+  renderWriteNick(false);
+  body.appendChild(nickBar);
   var ta = document.createElement('textarea');
   ta.id = 'write-ta';
   ta.placeholder = '왔다 갔다는 흔적을 남기세요';
@@ -878,46 +914,38 @@ function detailPage(pid) {
 }
 
 // ── 마이페이지 ───────────────────────────────────────────────────────
-function myPage() {
+function profilePage() {
   var me = S.me();
-  var posts = S.posts().filter(function(p){ return p.uid===me.uid; });
   var wrap = document.createElement('div');
   wrap.className = 'screen';
   wrap.style.cssText = 'min-height:100vh;padding-bottom:64px;';
 
   var hdr = document.createElement('div');
   hdr.className = 'sticky-header';
-  var backBtn = document.createElement('button');
-  backBtn.className = 'btn-ghost';
-  backBtn.textContent = '←';
-  backBtn.onclick = function() { R.go('/'); };
-  var title = document.createElement('span');
-  title.textContent = '내 흔적 모음';
-  title.style.cssText = 'font-size:12px;color:var(--text-muted);';
+  hdr.innerHTML = '<span style="font-size:13px;letter-spacing:.05em;">마이페이지</span>';
   var logoutBtn = document.createElement('button');
   logoutBtn.className = 'btn-ghost';
   logoutBtn.textContent = '로그아웃';
   logoutBtn.onclick = function() { S.setMe(null); R.go('/auth'); };
-  hdr.appendChild(backBtn); hdr.appendChild(title); hdr.appendChild(logoutBtn);
+  hdr.appendChild(logoutBtn);
   wrap.appendChild(hdr);
 
   var prof = document.createElement('div');
-  prof.style.cssText = 'display:flex;flex-direction:column;align-items:center;padding:24px 16px;border-bottom:1px solid var(--border);gap:10px;';
+  prof.style.cssText = 'display:flex;flex-direction:column;align-items:center;padding:32px 16px 24px;border-bottom:0.5px solid var(--border);gap:12px;';
 
   function renderProf(editing) {
     me = S.me();
     if (editing) {
       prof.innerHTML = [
-        '<div id="prof-av-wrap">'+avatar(me.nick, 52)+'</div>',
-        '<div style="width:100%;max-width:240px;">',
-        '<input id="prof-nick-inp" class="input-field" type="text" value="'+esc(me.nick)+'" maxlength="20" placeholder="닉네임 입력" style="text-align:center;margin-bottom:8px;">',
-        '<div id="prof-nick-preview" style="text-align:center;font-size:11px;color:var(--text-muted);min-height:16px;margin-bottom:10px;">'+nickHtml(me.nick, me.pseudo)+'</div>',
+        '<div id="prof-av-wrap">'+avatar(me.nick, 64)+'</div>',
+        '<div style="width:100%;max-width:260px;">',
+        '<input id="prof-nick-inp" class="input-field" type="text" value="'+esc(me.nick)+'" maxlength="20" placeholder="닉네임 입력" style="text-align:center;margin-bottom:6px;">',
+        '<div id="prof-nick-preview" style="text-align:center;font-size:11px;color:var(--text-muted);min-height:16px;margin-bottom:12px;">'+nickHtml(me.nick, me.pseudo)+'</div>',
         '<div style="display:flex;gap:8px;">',
-        '<button id="prof-save" style="flex:1;background:var(--bg-surface);border:1px solid var(--border);border-radius:4px;padding:7px;font-size:12px;color:var(--text);cursor:pointer;">저장</button>',
-        '<button id="prof-cancel" class="btn-ghost" style="flex:1;padding:7px;border:1px solid var(--border);border-radius:4px;">취소</button>',
+        '<button id="prof-save" style="flex:1;background:var(--bg-surface);border:0.5px solid var(--border);border-radius:6px;padding:8px;font-size:12px;color:var(--text);cursor:pointer;">저장</button>',
+        '<button id="prof-cancel" class="btn-ghost" style="flex:1;padding:8px;border:0.5px solid var(--border);border-radius:6px;">취소</button>',
         '</div></div>'
       ].join('');
-
       var inp = prof.querySelector('#prof-nick-inp');
       var preview = prof.querySelector('#prof-nick-preview');
       var avWrap = prof.querySelector('#prof-av-wrap');
@@ -925,7 +953,7 @@ function myPage() {
       inp.oninput = function() {
         var v = this.value.trim() || me.nick;
         var c = nick2color(v);
-        avWrap.innerHTML = '<div class="avatar" style="width:52px;height:52px;background:'+c.avBg+';color:'+c.avText+';font-size:20px;">'+getInitial(v)+'</div>';
+        avWrap.innerHTML = '<div class="avatar" style="width:64px;height:64px;background:'+c.avBg+';color:'+c.avText+';font-size:24px;">'+getInitial(v)+'</div>';
         preview.innerHTML = nickHtml(v, isPseudo(v));
       };
       prof.querySelector('#prof-save').onclick = function() {
@@ -939,25 +967,39 @@ function myPage() {
     } else {
       var postCount = S.posts().filter(function(p){ return p.uid===me.uid && !p.del; }).length;
       prof.innerHTML = [
-        avatar(me.nick, 52),
+        avatar(me.nick, 64),
         '<div style="text-align:center;">',
-        '<div style="display:flex;align-items:center;gap:6px;justify-content:center;">',
-        '<span style="font-size:13px;color:var(--text);">'+nickHtml(me.nick, me.pseudo)+'</span>',
-        '<button id="prof-edit-btn" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text-dim);padding:0 2px;" title="닉네임 수정">✏</button>',
+        '<div style="display:flex;align-items:center;gap:6px;justify-content:center;margin-bottom:4px;">',
+        '<span style="font-size:15px;font-weight:500;">'+nickHtml(me.nick, me.pseudo)+'</span>',
+        '<button id="prof-edit-btn" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text-dim);padding:0 2px;">✏</button>',
         '</div>',
-        '<div style="font-size:11px;color:var(--text-dim);margin-top:4px;">내가 남긴 흔적 '+postCount+'개</div>',
+        '<div style="font-size:11px;color:var(--text-dim);">흔적 '+postCount+'개</div>',
         '</div>'
       ].join('');
       prof.querySelector('#prof-edit-btn').onclick = function() { renderProf(true); };
     }
   }
-
   renderProf(false);
   wrap.appendChild(prof);
+  wrap.appendChild(tabBar('/profile'));
+  return wrap;
+}
+
+function myPage() {
+  var me = S.me();
+  var posts = S.posts().filter(function(p){ return p.uid===me.uid; });
+  var wrap = document.createElement('div');
+  wrap.className = 'screen';
+  wrap.style.cssText = 'min-height:100vh;padding-bottom:64px;';
+
+  var hdr = document.createElement('div');
+  hdr.className = 'sticky-header';
+  hdr.innerHTML = '<span style="font-size:13px;letter-spacing:.05em;">내 흔적</span>';
+  wrap.appendChild(hdr);
 
   var tabLabel = document.createElement('div');
-  tabLabel.style.cssText = 'padding:10px 16px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text-muted);';
-  tabLabel.textContent = '내 글 ('+posts.length+')';
+  tabLabel.style.cssText = 'padding:10px 16px;border-bottom:0.5px solid var(--border);font-size:11px;color:var(--text-muted);';
+  tabLabel.textContent = '총 '+posts.length+'개';
   wrap.appendChild(tabLabel);
 
   if (posts.length === 0) {
