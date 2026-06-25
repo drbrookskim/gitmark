@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>gitmark</title>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Inter:wght@400;500&family=Noto+Sans+KR:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" rel="stylesheet">
   <style>
     /* ── 라이트 (기본) ──────────────────────────────────────────── */
     :root {
@@ -41,6 +42,11 @@
       font-size: 13px;
       min-height: 100vh;
       transition: background .2s, color .2s;
+    }
+    /* 본문 전용 폰트: 한글 Noto Sans KR, 영문 Inter */
+    .body-font {
+      font-family: 'Inter', 'Noto Sans KR', -apple-system, sans-serif;
+      font-weight: 400;
     }
     /* 도트 배경 패턴 */
     body::before {
@@ -89,25 +95,44 @@
     .tab-bar {
       position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
       width: 100%; max-width: 680px;
-      background: var(--bg); border-top: 1px solid var(--border);
+      background: var(--bg); border-top: 0.5px solid var(--border);
       display: flex; z-index: 20;
     }
     .tab-bar button {
-      flex: 1; padding: 13px 0; font-size: 11px;
+      flex: 1; padding: 10px 0 13px;
       background: none; border: none; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
       transition: color .15s;
     }
+    .tab-bar button i { font-size: 20px; }
+    .tab-bar button span { font-size: 10px; }
     .sticky-header {
       position: sticky; top: 0; z-index: 10;
-      background: var(--bg); border-bottom: 1px solid var(--border);
-      padding: 12px 20px; display: flex;
+      background: var(--bg); border-bottom: 0.5px solid var(--border);
+      padding: 10px 20px; display: flex;
       align-items: center; justify-content: space-between;
     }
+    .write-pill {
+      font-size: 11px; color: var(--text-muted);
+      background: none; border: 0.5px solid var(--border);
+      border-radius: 20px; padding: 5px 12px; cursor: pointer;
+      font-family: 'JetBrains Mono', monospace;
+      transition: border-color .15s, color .15s;
+    }
+    .write-pill:hover { border-color: var(--text-muted); color: var(--text); }
     .avatar {
       border-radius: 50%; display: flex; align-items: center;
       justify-content: center; font-weight: 500; flex-shrink: 0;
     }
-    .like-btn { background: none; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; gap: 4px; transition: color .15s; }
+    .like-btn {
+      cursor: pointer; display: flex; align-items: center; gap: 4px;
+      font-size: 11px; font-family: 'JetBrains Mono', monospace;
+      padding: 3px 10px; border-radius: 20px;
+      border: 0.5px solid var(--border);
+      background: var(--bg-elevated);
+      transition: color .15s, border-color .15s, background .15s;
+    }
+    .like-btn.liked { color: #f472b6; border-color: #f472b6; background: rgba(244,114,182,.08); }
     .del-btn { background: none; border: none; cursor: pointer; padding: 0; font-size: 11px; color: var(--text-dim); transition: color .15s; }
     .del-btn:hover { color: #f87171; }
     textarea { resize: none; background: transparent; border: none; outline: none; color: var(--text); width: 100%; line-height: 1.7; }
@@ -366,12 +391,16 @@ if (DEV_SKIP_AUTH && !S.me()) {
 
 // ── 공통: 탭바 ──────────────────────────────────────────────────────
 function tabBar(active) {
-  var tabs = [{icon:'🏠',label:'피드',path:'/'},{icon:'✏',label:'쓰기',path:'/write'},{icon:'👤',label:'내 글',path:'/my'}];
+  var tabs = [
+    {icon:'ti-home',     label:'피드',  path:'/'},
+    {icon:'ti-pencil',   label:'쓰기',  path:'/write'},
+    {icon:'ti-user',     label:'내 글', path:'/my'}
+  ];
   var nav = document.createElement('nav');
   nav.className = 'tab-bar';
   tabs.forEach(function(t) {
     var btn = document.createElement('button');
-    btn.innerHTML = t.icon + ' ' + t.label;
+    btn.innerHTML = '<i class="ti '+t.icon+'" aria-hidden="true"></i><span>'+t.label+'</span>';
     btn.style.color = active === t.path ? 'var(--text)' : 'var(--text-muted)';
     btn.onclick = function() { R.go(t.path); };
     nav.appendChild(btn);
@@ -478,9 +507,8 @@ function feedPage() {
   hdr.className = 'sticky-header';
   hdr.innerHTML = '<span style="font-size:13px;letter-spacing:.22em;">gitmark</span>';
   var writeBtn = document.createElement('button');
-  writeBtn.className = 'btn-ghost';
-  writeBtn.style.fontSize = '12px';
-  writeBtn.textContent = '✏ 흔적 남기기';
+  writeBtn.className = 'write-pill';
+  writeBtn.textContent = '+ 흔적 남기기';
   writeBtn.onclick = function() { R.go('/write'); };
   hdr.appendChild(writeBtn);
   wrap.appendChild(hdr);
@@ -547,14 +575,15 @@ function makeCard(post, me) {
 
   var liked = S.isLiked(post.id, me.uid);
   tile.innerHTML = [
-    /* 상단 헤더: 내용 + 시간 */
+    /* 상단 헤더: 내용(3줄 클램프) + 시간 */
     '<div class="tile-head">',
-    '<div class="tile-txt">'+esc(post.txt)+'</div>',
+    '<div class="tile-txt body-font" id="txt-'+post.id+'" style="-webkit-line-clamp:3;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden;">'+esc(post.txt)+'</div>',
     '<div class="tile-since">'+relTime(post.upd||post.at)+'</div>',
     '</div>',
+    post.txt.length > 80 ? '<button id="more-'+post.id+'" style="display:block;width:100%;text-align:left;padding:2px 14px 8px;font-size:10px;color:var(--text-dim);background:none;border:none;cursor:pointer;font-family:\'JetBrains Mono\',monospace;">더 보기 →</button>' : '',
 
     /* 하단 메타 행 */
-    '<div class="tile-rows" style="background:'+c.tint+';">',
+    '<div class="tile-rows">',
 
     /* 행 1 — 작성자 (내 글이면 편집 아이콘) */
     '<div class="tile-row">',
@@ -566,16 +595,12 @@ function makeCard(post, me) {
 
     /* 행 2 — 좋아요 · 댓글 · 삭제 */
     '<div class="tile-row">',
-    '<span class="tile-row-icon">',
-    '<button class="like-btn" id="lbtn-'+post.id+'" style="color:'+(liked?'#f472b6':'var(--text-dim)')+';">',
+    '<span class="tile-row-val" style="gap:8px;">',
+    '<button class="like-btn'+(liked?' liked':'')+'" id="lbtn-'+post.id+'">',
     '<span id="lico-'+post.id+'">'+(liked?'♥':'♡')+'</span>',
-    '</button>',
-    '</span>',
-    '<span class="tile-row-val">',
     '<span id="lcnt-'+post.id+'">'+(post.likes||0)+'</span>',
-    '<span style="color:var(--border);">·</span>',
-    '<span style="font-size:11px;">💬</span>',
-    '<span>'+(post.comments||0)+'</span>',
+    '</button>',
+    '<span style="font-size:11px;color:var(--text-dim);display:flex;align-items:center;gap:4px;"><i class="ti ti-message" aria-hidden="true" style="font-size:13px;"></i>'+(post.comments||0)+'</span>',
     me.uid===post.uid ? '<button class="del-btn" style="margin-left:auto;" id="delbtn-'+post.id+'">삭제</button>' : '',
     '</span>',
     '</div>',
@@ -586,10 +611,28 @@ function makeCard(post, me) {
   tile.querySelector('#lbtn-'+post.id).onclick = function(e) {
     e.stopPropagation();
     var now = S.toggleLike(post.id, me.uid);
-    this.style.color = now ? '#f472b6' : 'var(--text-muted)';
+    this.classList.toggle('liked', now);
     document.getElementById('lico-'+post.id).textContent = now ? '♥' : '♡';
     document.getElementById('lcnt-'+post.id).textContent = (S.getPost(post.id)||{}).likes||0;
   };
+  var moreBtn = tile.querySelector('#more-'+post.id);
+  if (moreBtn) {
+    var expanded = false;
+    moreBtn.onclick = function(e) {
+      e.stopPropagation();
+      expanded = !expanded;
+      var txtEl = document.getElementById('txt-'+post.id);
+      if (expanded) {
+        txtEl.style.webkitLineClamp = 'unset';
+        txtEl.style.display = 'block';
+        this.textContent = '접기 ↑';
+      } else {
+        txtEl.style.webkitLineClamp = '3';
+        txtEl.style.display = '-webkit-box';
+        this.textContent = '더 보기 →';
+      }
+    };
+  }
   if (me.uid===post.uid) {
     tile.querySelector('#nick-edit-'+post.id).onclick = function(e) {
       e.stopPropagation();
