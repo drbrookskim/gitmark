@@ -502,7 +502,9 @@ function feedPage() {
     spine.innerHTML = '<div class="spine-s"></div><div class="spine-m"></div><div class="spine-h"></div><div class="spine-e"></div>';
     spineWrap.appendChild(spine);
 
-    posts.forEach(function(post) { spineWrap.appendChild(makeCard(post, me)); });
+    var now60 = Date.now();
+    posts.filter(function(p){ return !(p.del && now60 - p.del >= 60000); })
+         .forEach(function(post) { spineWrap.appendChild(makeCard(post, me)); });
     wrap.appendChild(spineWrap);
   }
   wrap.appendChild(tabBar('/'));
@@ -538,24 +540,28 @@ function makeCard(post, me) {
       '<div class="tile-del-rows">이 흔적은 지워졌습니다</div>'
     ].join('');
     row.appendChild(tile);
+    var remain = 60000 - (Date.now() - post.del);
+    if (remain > 0) setTimeout(function(){ if(row.parentNode) row.parentNode.removeChild(row); }, remain);
     return row;
   }
 
   var liked = S.isLiked(post.id, me.uid);
   tile.innerHTML = [
     /* 상단 헤더: 내용 + 시간 */
-    '<div class="tile-head" style="background:'+c.tint+';">',
+    '<div class="tile-head">',
     '<div class="tile-txt">'+esc(post.txt)+'</div>',
     '<div class="tile-since">'+relTime(post.upd||post.at)+'</div>',
     '</div>',
 
     /* 하단 메타 행 */
-    '<div class="tile-rows">',
+    '<div class="tile-rows" style="background:'+c.tint+';">',
 
-    /* 행 1 — 작성자 */
+    /* 행 1 — 작성자 (내 글이면 편집 아이콘) */
     '<div class="tile-row">',
     '<span class="tile-row-icon">'+avatar(post.nick, 16)+'</span>',
-    '<span class="tile-row-val">'+nickHtml(post.nick, post.pseudo)+'</span>',
+    '<span class="tile-row-val">'+nickHtml(post.nick, post.pseudo)+
+      (me.uid===post.uid ? ' <button id="nick-edit-'+post.id+'" style="background:none;border:none;cursor:pointer;font-size:10px;color:var(--text-dim);padding:0 0 0 4px;">✏</button>' : '')+
+    '</span>',
     '</div>',
 
     /* 행 2 — 좋아요 · 댓글 · 삭제 */
@@ -585,9 +591,13 @@ function makeCard(post, me) {
     document.getElementById('lcnt-'+post.id).textContent = (S.getPost(post.id)||{}).likes||0;
   };
   if (me.uid===post.uid) {
+    tile.querySelector('#nick-edit-'+post.id).onclick = function(e) {
+      e.stopPropagation();
+      R.go('/my');
+    };
     tile.querySelector('#delbtn-'+post.id).onclick = function(e) {
       e.stopPropagation();
-      if (!confirm('이 흔적을 지우시겠어요? 삭제 시각은 남습니다.')) return;
+      if (!confirm('이 흔적을 지우시겠어요? 60초 후 완전히 사라집니다.')) return;
       S.deletePost(post.id); R.render();
     };
   }
@@ -801,17 +811,21 @@ function detailPage(pid) {
   sendBtn.onmouseover = function(){this.style.color='var(--text)';};
   sendBtn.onmouseout = function(){this.style.color='var(--text-muted)';};
 
+  var _submitting = false;
   function submit() {
+    if (_submitting) return;
     var txt = inp.value.trim();
     if (!txt) return;
+    _submitting = true;
+    inp.value = ''; inp.placeholder = '흔적을 남기세요'; replyTo = null;
     S.addComment(pid, { id:mkId(), pid:pid, parent:replyTo, uid:me.uid, nick:me.nick, pseudo:me.pseudo, txt:txt, at:Date.now(), del:null });
     S.incComments(pid, 1);
-    inp.value = ''; inp.placeholder = '흔적을 남기세요'; replyTo = null;
     renderComments();
     var cnt=document.getElementById('d-cmt-cnt'); if(cnt)cnt.textContent=(S.getPost(pid)||{}).comments||0;
+    setTimeout(function(){ _submitting = false; }, 300);
   }
-  inp.onkeydown = function(e){ if(e.key==='Enter') submit(); };
-  sendBtn.onclick = submit;
+  inp.onkeydown = function(e){ if(e.key==='Enter'){ e.preventDefault(); submit(); } };
+  sendBtn.onclick = function(e){ e.preventDefault(); submit(); };
   cInput.appendChild(inp);
   cInput.appendChild(sendBtn);
   wrap.appendChild(cInput);
@@ -916,7 +930,9 @@ function myPage() {
     spine.className = 'spine';
     spine.innerHTML = '<div class="spine-s"></div><div class="spine-m"></div><div class="spine-h"></div><div class="spine-e"></div>';
     spineWrap.appendChild(spine);
-    posts.forEach(function(p) { spineWrap.appendChild(makeCard(p, me)); });
+    var now60m = Date.now();
+    posts.filter(function(p){ return !(p.del && now60m - p.del >= 60000); })
+         .forEach(function(p) { spineWrap.appendChild(makeCard(p, me)); });
     wrap.appendChild(spineWrap);
   }
 
