@@ -6,13 +6,41 @@
   <title>gitmark</title>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
+    /* ── 라이트 (기본) ──────────────────────────────────────────── */
+    :root {
+      --bg:         #fafaf9;
+      --bg-surface: #f5f5f4;
+      --bg-elevated:#ececea;
+      --border:     #e5e5e4;
+      --border-sub: #ededeb;
+      --text:       #1c1917;
+      --text-muted: #78716c;
+      --text-dim:   #a8a29e;
+      --text-body:  #44403c;
+      --text-faint: #78716c;
+    }
+    /* ── 다크 ───────────────────────────────────────────────────── */
+    body.dark {
+      --bg:         #0d0d0d;
+      --bg-surface: #1a1a1a;
+      --bg-elevated:#111111;
+      --border:     #2a2a2a;
+      --border-sub: #1e1e1e;
+      --text:       #e8e8e8;
+      --text-muted: #555555;
+      --text-dim:   #333333;
+      --text-body:  #cccccc;
+      --text-faint: #aaaaaa;
+    }
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      background: #0d0d0d;
-      color: #e8e8e8;
+      background: var(--bg);
+      color: var(--text);
       font-family: 'JetBrains Mono', 'Courier New', monospace;
       font-size: 13px;
       min-height: 100vh;
+      transition: background .2s, color .2s;
     }
     #app {
       max-width: 480px;
@@ -25,27 +53,27 @@
     ::-webkit-scrollbar { width: 0; }
     .screen { animation: fi .12s ease; }
     @keyframes fi { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; } }
-    .card:hover { background: #111 !important; }
+    .card:hover { background: var(--bg-elevated) !important; }
     .btn-ghost {
       background: none; border: none; cursor: pointer;
-      color: #555; font-size: 11px; padding: 0;
+      color: var(--text-muted); font-size: 11px; padding: 0;
       transition: color .15s;
     }
-    .btn-ghost:hover { color: #e8e8e8; }
-    .divider { border: none; border-top: 1px solid #2a2a2a; margin: 0; }
+    .btn-ghost:hover { color: var(--text); }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 0; }
     .input-field {
-      width: 100%; background: #1a1a1a;
-      border: 1px solid #2a2a2a; border-radius: 4px;
+      width: 100%; background: var(--bg-surface);
+      border: 1px solid var(--border); border-radius: 4px;
       padding: 9px 12px; font-size: 13px;
-      color: #e8e8e8; outline: none;
+      color: var(--text); outline: none;
       transition: border-color .15s;
     }
-    .input-field:focus { border-color: #555; }
-    .input-field::placeholder { color: #3a3a3a; }
+    .input-field:focus { border-color: var(--text-muted); }
+    .input-field::placeholder { color: var(--text-dim); }
     .tab-bar {
       position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
       width: 100%; max-width: 480px;
-      background: #0d0d0d; border-top: 1px solid #2a2a2a;
+      background: var(--bg); border-top: 1px solid var(--border);
       display: flex; z-index: 20;
     }
     .tab-bar button {
@@ -55,7 +83,7 @@
     }
     .sticky-header {
       position: sticky; top: 0; z-index: 10;
-      background: #0d0d0d; border-bottom: 1px solid #2a2a2a;
+      background: var(--bg); border-bottom: 1px solid var(--border);
       padding: 12px 16px; display: flex;
       align-items: center; justify-content: space-between;
     }
@@ -64,13 +92,25 @@
       justify-content: center; font-weight: 500; flex-shrink: 0;
     }
     .like-btn { background: none; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; gap: 4px; transition: color .15s; }
-    .del-btn { background: none; border: none; cursor: pointer; padding: 0; font-size: 11px; color: #444; transition: color .15s; margin-left: auto; }
+    .del-btn { background: none; border: none; cursor: pointer; padding: 0; font-size: 11px; color: var(--text-dim); transition: color .15s; margin-left: auto; }
     .del-btn:hover { color: #f87171; }
-    textarea { resize: none; background: transparent; border: none; outline: none; color: #e8e8e8; width: 100%; line-height: 1.7; }
+    textarea { resize: none; background: transparent; border: none; outline: none; color: var(--text); width: 100%; line-height: 1.7; }
+
+    /* ── 테마 토글 버튼 ─────────────────────────────────────────── */
+    #theme-toggle {
+      position: fixed; top: 10px; right: 12px; z-index: 100;
+      background: none; border: none; cursor: pointer;
+      font-size: 16px; padding: 4px 6px;
+      border-radius: 6px;
+      transition: background .15s;
+      line-height: 1;
+    }
+    #theme-toggle:hover { background: var(--bg-elevated); }
   </style>
 </head>
 <body>
-<div id="app"><div style="text-align:center;padding:60px;color:#333;font-size:11px;">로딩 중...</div></div>
+<button id="theme-toggle" title="테마 전환">☀️</button>
+<div id="app"><div style="text-align:center;padding:60px;color:var(--text-dim);font-size:11px;">로딩 중...</div></div>
 <script>
 'use strict';
 
@@ -151,7 +191,27 @@ var S = {
   incComments: function(pid, n) {
     var ps=S.posts(), i=ps.findIndex(function(p){return p.id===pid;});
     if(i>=0){ps[i].comments=Math.max(0,(ps[i].comments||0)+n); S.set('posts',ps);}
+  },
+  theme: function() { return S.get('theme') || 'light'; },
+  setTheme: function(t) { S.set('theme', t); }
+};
+
+// ── 테마 ────────────────────────────────────────────────────────────
+function applyTheme(t) {
+  var btn = document.getElementById('theme-toggle');
+  if (t === 'dark') {
+    document.body.classList.add('dark');
+    if (btn) btn.textContent = '🌙';
+  } else {
+    document.body.classList.remove('dark');
+    if (btn) btn.textContent = '☀️';
   }
+}
+
+document.getElementById('theme-toggle').onclick = function() {
+  var next = S.theme() === 'dark' ? 'light' : 'dark';
+  S.setTheme(next);
+  applyTheme(next);
 };
 
 // ── 라우터 (해시 기반) ───────────────────────────────────────────────
@@ -188,7 +248,7 @@ function tabBar(active) {
   tabs.forEach(function(t) {
     var btn = document.createElement('button');
     btn.innerHTML = t.icon + ' ' + t.label;
-    btn.style.color = active === t.path ? '#e8e8e8' : '#555';
+    btn.style.color = active === t.path ? 'var(--text)' : 'var(--text-muted)';
     btn.onclick = function() { R.go(t.path); };
     nav.appendChild(btn);
   });
@@ -206,36 +266,32 @@ function authPage() {
       '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;">',
       '<div style="width:100%;max-width:340px;">',
 
-      // 로고
       '<div style="text-align:center;margin-bottom:28px;">',
-      '<div style="font-size:20px;letter-spacing:.35em;color:#e8e8e8;margin-bottom:6px;">g i t m a r k</div>',
-      '<div style="font-size:11px;color:#555;">왔다 갔다는 흔적을 남기는 곳</div>',
+      '<div style="font-size:20px;letter-spacing:.35em;color:var(--text);margin-bottom:6px;">g i t m a r k</div>',
+      '<div style="font-size:11px;color:var(--text-muted);">왔다 갔다는 흔적을 남기는 곳</div>',
       '</div>',
 
-      // 아바타 미리보기 (가입 시)
       mode==='signup' ? [
         '<div id="av-wrap" style="display:flex;flex-direction:column;align-items:center;margin-bottom:20px;">',
         '<div id="av-circle" style="width:52px;height:52px;background:#2d1b69;color:#c4b5fd;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;transition:all .2s;">?</div>',
-        '<div id="av-label" style="font-size:11px;color:#555;margin-top:6px;min-height:16px;"></div>',
+        '<div id="av-label" style="font-size:11px;color:var(--text-muted);margin-top:6px;min-height:16px;"></div>',
         '</div>'
       ].join('') : '',
 
-      // 탭
-      '<div style="display:flex;border-bottom:1px solid #2a2a2a;margin-bottom:18px;">',
-      '<button onclick="__setMode(\'login\')" style="flex:1;padding:8px;font-size:12px;background:none;border:none;border-bottom:'+(mode==='login'?'1px solid #e8e8e8':'none')+';color:'+(mode==='login'?'#e8e8e8':'#555')+';cursor:pointer;">로그인</button>',
-      '<button onclick="__setMode(\'signup\')" style="flex:1;padding:8px;font-size:12px;background:none;border:none;border-bottom:'+(mode==='signup'?'1px solid #e8e8e8':'none')+';color:'+(mode==='signup'?'#e8e8e8':'#555')+';cursor:pointer;">가입하기</button>',
+      '<div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:18px;">',
+      '<button onclick="__setMode(\'login\')" style="flex:1;padding:8px;font-size:12px;background:none;border:none;border-bottom:'+(mode==='login'?'1px solid var(--text)':'none')+';color:'+(mode==='login'?'var(--text)':'var(--text-muted)')+';cursor:pointer;">로그인</button>',
+      '<button onclick="__setMode(\'signup\')" style="flex:1;padding:8px;font-size:12px;background:none;border:none;border-bottom:'+(mode==='signup'?'1px solid var(--text)':'none')+';color:'+(mode==='signup'?'var(--text)':'var(--text-muted)')+';cursor:pointer;">가입하기</button>',
       '</div>',
 
-      // 폼
-      mode==='signup' ? '<div style="margin-bottom:12px;"><div style="font-size:10px;color:#666;margin-bottom:4px;">닉네임</div><input id="f-nick" class="input-field" type="text" placeholder="나를 부를 이름" maxlength="20" oninput="__updateAv()"></div>' : '',
-      '<div style="margin-bottom:12px;"><div style="font-size:10px;color:#666;margin-bottom:4px;">이메일</div><input id="f-email" class="input-field" type="email" placeholder="you@email.com"></div>',
-      '<div style="margin-bottom:18px;"><div style="font-size:10px;color:#666;margin-bottom:4px;">비밀번호</div>',
+      mode==='signup' ? '<div style="margin-bottom:12px;"><div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;">닉네임</div><input id="f-nick" class="input-field" type="text" placeholder="나를 부를 이름" maxlength="20" oninput="__updateAv()"></div>' : '',
+      '<div style="margin-bottom:12px;"><div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;">이메일</div><input id="f-email" class="input-field" type="email" placeholder="you@email.com"></div>',
+      '<div style="margin-bottom:18px;"><div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;">비밀번호</div>',
       '<div style="position:relative;">',
       '<input id="f-pw" class="input-field" type="password" placeholder="6자 이상" style="padding-right:44px;">',
-      '<button onclick="__togglePw()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:#555;font-size:10px;cursor:pointer;">표시</button>',
+      '<button onclick="__togglePw()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);font-size:10px;cursor:pointer;">표시</button>',
       '</div></div>',
       '<div id="f-err" style="color:#f87171;font-size:11px;margin-bottom:10px;display:none;"></div>',
-      '<button onclick="__doAuth()" style="width:100%;background:#1a1a1a;border:1px solid #3a3a3a;border-radius:4px;padding:11px;font-size:13px;color:#e8e8e8;cursor:pointer;transition:border-color .15s;" onmouseover="this.style.borderColor=\'#666\'" onmouseout="this.style.borderColor=\'#3a3a3a\'">',
+      '<button onclick="__doAuth()" style="width:100%;background:var(--bg-surface);border:1px solid var(--border);border-radius:4px;padding:11px;font-size:13px;color:var(--text);cursor:pointer;transition:border-color .15s;" onmouseover="this.style.borderColor=\'var(--text-muted)\'" onmouseout="this.style.borderColor=\'var(--border)\'">',
       mode==='login' ? '로그인' : '▶ 흔적 남기기 시작',
       '</button>',
       '</div></div>'
@@ -308,7 +364,7 @@ function feedPage() {
   var list = document.createElement('div');
   var posts = S.posts();
   if (posts.length === 0) {
-    list.innerHTML = '<div style="text-align:center;padding:60px 16px;color:#444;"><div style="margin-bottom:14px;">아직 아무도 다녀가지 않았어요.</div><button onclick="R.go(\'/write\')" style="font-size:11px;color:#666;background:none;border:none;cursor:pointer;">첫 번째 흔적을 남겨보세요 →</button></div>';
+    list.innerHTML = '<div style="text-align:center;padding:60px 16px;color:var(--text-dim);"><div style="margin-bottom:14px;">아직 아무도 다녀가지 않았어요.</div><button onclick="R.go(\'/write\')" style="font-size:11px;color:var(--text-muted);background:none;border:none;cursor:pointer;">첫 번째 흔적을 남겨보세요 →</button></div>';
   } else {
     posts.forEach(function(post) { list.appendChild(makeCard(post, me)); });
   }
@@ -320,10 +376,10 @@ function feedPage() {
 function makeCard(post, me) {
   var el = document.createElement('div');
   el.className = 'card';
-  el.style.cssText = 'border-bottom:1px solid #2a2a2a;padding:14px 16px;cursor:pointer;transition:background .12s;';
+  el.style.cssText = 'border-bottom:1px solid var(--border);padding:14px 16px;cursor:pointer;transition:background .12s;';
 
   if (post.del) {
-    el.innerHTML = '<div style="display:flex;align-items:center;gap:8px;color:#333;"><span>╳</span><span style="font-size:11px;">삭제됨 · '+absTime(post.del)+'</span></div><div style="font-size:11px;color:#252525;margin-top:4px;">이 흔적은 지워졌습니다</div>';
+    el.innerHTML = '<div style="display:flex;align-items:center;gap:8px;color:var(--text-dim);"><span>╳</span><span style="font-size:11px;">삭제됨 · '+absTime(post.del)+'</span></div><div style="font-size:11px;color:var(--text-dim);margin-top:4px;">이 흔적은 지워졌습니다</div>';
     return el;
   }
 
@@ -333,16 +389,16 @@ function makeCard(post, me) {
     avatar(post.nick),
     '<div style="flex:1;min-width:0;">',
     '<div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;margin-bottom:8px;">',
-    '<span style="font-size:13px;color:#e8e8e8;">'+nickHtml(post.nick, post.pseudo)+'</span>',
-    '<span style="font-size:11px;color:#555;">· '+relTime(post.upd||post.at)+'</span>',
+    '<span style="font-size:13px;color:var(--text);">'+nickHtml(post.nick, post.pseudo)+'</span>',
+    '<span style="font-size:11px;color:var(--text-muted);">· '+relTime(post.upd||post.at)+'</span>',
     '</div>',
-    '<div style="font-size:13px;color:#ccc;line-height:1.65;word-break:break-word;">'+esc(post.txt)+'</div>',
+    '<div style="font-size:13px;color:var(--text-body);line-height:1.65;word-break:break-word;">'+esc(post.txt)+'</div>',
     '<div style="display:flex;align-items:center;gap:14px;margin-top:10px;">',
-    '<button class="like-btn" id="lbtn-'+post.id+'" style="color:'+(liked?'#f472b6':'#555')+';">',
+    '<button class="like-btn" id="lbtn-'+post.id+'" style="color:'+(liked?'#f472b6':'var(--text-muted)')+';">',
     '<span id="lico-'+post.id+'">'+(liked?'♥':'♡')+'</span>',
     '<span style="font-size:12px;" id="lcnt-'+post.id+'">'+(post.likes||0)+'</span>',
     '</button>',
-    '<span style="font-size:12px;color:#555;">💬 '+(post.comments||0)+'</span>',
+    '<span style="font-size:12px;color:var(--text-muted);">💬 '+(post.comments||0)+'</span>',
     me.uid===post.uid ? '<button class="del-btn" id="delbtn-'+post.id+'">삭제</button>' : '',
     '</div></div></div>'
   ].join('');
@@ -350,7 +406,7 @@ function makeCard(post, me) {
   el.querySelector('#lbtn-'+post.id).onclick = function(e) {
     e.stopPropagation();
     var now = S.toggleLike(post.id, me.uid);
-    this.style.color = now ? '#f472b6' : '#555';
+    this.style.color = now ? '#f472b6' : 'var(--text-muted)';
     document.getElementById('lico-'+post.id).textContent = now ? '♥' : '♡';
     document.getElementById('lcnt-'+post.id).textContent = (S.getPost(post.id)||{}).likes||0;
   };
@@ -387,7 +443,7 @@ function writePage() {
   submitBtn.id = 'submit-btn';
   submitBtn.textContent = '남기기';
   submitBtn.disabled = true;
-  submitBtn.style.cssText = 'background:#1a1a1a;border:1px solid #3a3a3a;border-radius:4px;padding:6px 14px;font-size:12px;color:#e8e8e8;cursor:pointer;opacity:.3;';
+  submitBtn.style.cssText = 'background:var(--bg-surface);border:1px solid var(--border);border-radius:4px;padding:6px 14px;font-size:12px;color:var(--text);cursor:pointer;opacity:.3;';
   submitBtn.onclick = function() {
     var ta = document.getElementById('write-ta');
     if (!ta) return;
@@ -403,7 +459,7 @@ function writePage() {
 
   var body = document.createElement('div');
   body.style.cssText = 'padding:14px 16px;flex:1;';
-  body.innerHTML = '<div style="font-size:11px;color:#555;margin-bottom:10px;">'+nickHtml(me.nick, me.pseudo)+'</div>';
+  body.innerHTML = '<div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">'+nickHtml(me.nick, me.pseudo)+'</div>';
   var ta = document.createElement('textarea');
   ta.id = 'write-ta';
   ta.placeholder = '왔다 갔다는 흔적을 남기세요';
@@ -411,16 +467,16 @@ function writePage() {
   ta.oninput = function() {
     var len = this.value.length, rem = MAX - len, pct = Math.min(len/MAX*100,100);
     var bar = document.getElementById('w-bar'), cnt = document.getElementById('w-cnt'), btn = document.getElementById('submit-btn');
-    if (bar) { bar.style.width = pct+'%'; bar.style.background = len>MAX?'#ef4444':pct>90?'#eab308':'#555'; }
-    if (cnt) { cnt.textContent = rem; cnt.style.color = len>MAX?'#f87171':rem<20?'#eab308':'#555'; }
+    if (bar) { bar.style.width = pct+'%'; bar.style.background = len>MAX?'#ef4444':pct>90?'#eab308':'var(--text-muted)'; }
+    if (cnt) { cnt.textContent = rem; cnt.style.color = len>MAX?'#f87171':rem<20?'#eab308':'var(--text-muted)'; }
     if (btn) { var ok = len>0&&len<=MAX; btn.disabled=!ok; btn.style.opacity=ok?'1':'.3'; }
   };
   body.appendChild(ta);
   wrap.appendChild(body);
 
   var footer = document.createElement('div');
-  footer.style.cssText = 'position:sticky;bottom:0;background:#0d0d0d;border-top:1px solid #2a2a2a;padding:10px 16px;';
-  footer.innerHTML = '<div style="display:flex;align-items:center;gap:10px;"><div style="flex:1;height:3px;background:#1a1a1a;border-radius:2px;overflow:hidden;"><div id="w-bar" style="height:100%;width:0;background:#555;border-radius:2px;transition:width .1s,background .1s;"></div></div><span id="w-cnt" style="font-size:11px;color:#555;min-width:28px;text-align:right;">'+MAX+'</span></div>';
+  footer.style.cssText = 'position:sticky;bottom:0;background:var(--bg);border-top:1px solid var(--border);padding:10px 16px;';
+  footer.innerHTML = '<div style="display:flex;align-items:center;gap:10px;"><div style="flex:1;height:3px;background:var(--bg-elevated);border-radius:2px;overflow:hidden;"><div id="w-bar" style="height:100%;width:0;background:var(--text-muted);border-radius:2px;transition:width .1s,background .1s;"></div></div><span id="w-cnt" style="font-size:11px;color:var(--text-muted);min-width:28px;text-align:right;">'+MAX+'</span></div>';
   wrap.appendChild(footer);
 
   setTimeout(function() { var ta=document.getElementById('write-ta'); if(ta) ta.focus(); }, 50);
@@ -436,7 +492,7 @@ function detailPage(pid) {
   wrap.style.cssText = 'min-height:100vh;padding-bottom:70px;';
 
   if (!post) {
-    wrap.innerHTML = '<div style="text-align:center;padding:60px;color:#444;">게시물을 찾을 수 없습니다.</div>';
+    wrap.innerHTML = '<div style="text-align:center;padding:60px;color:var(--text-dim);">게시물을 찾을 수 없습니다.</div>';
     return wrap;
   }
 
@@ -449,28 +505,27 @@ function detailPage(pid) {
   hdr.appendChild(backBtn);
   wrap.appendChild(hdr);
 
-  // 본문
   var postEl = document.createElement('div');
-  postEl.style.cssText = 'padding:16px;border-bottom:1px solid #2a2a2a;';
+  postEl.style.cssText = 'padding:16px;border-bottom:1px solid var(--border);';
   if (post.del) {
-    postEl.innerHTML = '<div style="color:#333;font-size:12px;">╳ 삭제됨 · '+absTime(post.del)+'</div><div style="font-size:11px;color:#252525;margin-top:4px;">이 흔적은 지워졌습니다</div>';
+    postEl.innerHTML = '<div style="color:var(--text-dim);font-size:12px;">╳ 삭제됨 · '+absTime(post.del)+'</div><div style="font-size:11px;color:var(--text-dim);margin-top:4px;">이 흔적은 지워졌습니다</div>';
   } else {
     var liked = S.isLiked(pid, me.uid);
     postEl.innerHTML = [
       '<div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:14px;">',
       avatar(post.nick, 42),
-      '<div><div style="font-size:13px;color:#e8e8e8;">'+nickHtml(post.nick,post.pseudo)+'</div>',
-      '<div style="font-size:11px;color:#555;margin-top:3px;">'+relTime(post.upd||post.at)+'</div></div></div>',
-      '<div style="font-size:14px;color:#ccc;line-height:1.7;word-break:break-word;margin-bottom:14px;">'+esc(post.txt)+'</div>',
+      '<div><div style="font-size:13px;color:var(--text);">'+nickHtml(post.nick,post.pseudo)+'</div>',
+      '<div style="font-size:11px;color:var(--text-muted);margin-top:3px;">'+relTime(post.upd||post.at)+'</div></div></div>',
+      '<div style="font-size:14px;color:var(--text-body);line-height:1.7;word-break:break-word;margin-bottom:14px;">'+esc(post.txt)+'</div>',
       '<div style="display:flex;align-items:center;gap:14px;">',
-      '<button class="like-btn" id="d-lbtn" style="color:'+(liked?'#f472b6':'#555')+'"><span id="d-lico">'+(liked?'♥':'♡')+'</span><span style="font-size:12px;" id="d-lcnt">'+(post.likes||0)+'</span></button>',
-      '<span style="font-size:12px;color:#555;">💬 <span id="d-cmt-cnt">'+(post.comments||0)+'</span></span>',
+      '<button class="like-btn" id="d-lbtn" style="color:'+(liked?'#f472b6':'var(--text-muted)')+'"><span id="d-lico">'+(liked?'♥':'♡')+'</span><span style="font-size:12px;" id="d-lcnt">'+(post.likes||0)+'</span></button>',
+      '<span style="font-size:12px;color:var(--text-muted);">💬 <span id="d-cmt-cnt">'+(post.comments||0)+'</span></span>',
       me.uid===post.uid ? '<button class="del-btn" id="d-del">삭제</button>' : '',
       '</div>'
     ].join('');
     postEl.querySelector('#d-lbtn').onclick = function() {
       var now = S.toggleLike(pid, me.uid);
-      this.style.color = now?'#f472b6':'#555';
+      this.style.color = now?'#f472b6':'var(--text-muted)';
       document.getElementById('d-lico').textContent = now?'♥':'♡';
       document.getElementById('d-lcnt').textContent = (S.getPost(pid)||{}).likes||0;
     };
@@ -483,7 +538,6 @@ function detailPage(pid) {
   }
   wrap.appendChild(postEl);
 
-  // 댓글
   var cList = document.createElement('div');
   cList.id = 'd-clist';
   wrap.appendChild(cList);
@@ -501,17 +555,17 @@ function detailPage(pid) {
   function mkComment(c, replies) {
     var el = document.createElement('div');
     if (c.del) {
-      el.innerHTML = '<div style="padding:10px 16px;border-bottom:1px solid #1e1e1e;color:#2d2d2d;font-size:11px;">● 삭제됨 · '+absTime(c.del)+'</div>';
+      el.innerHTML = '<div style="padding:10px 16px;border-bottom:1px solid var(--border-sub);color:var(--text-dim);font-size:11px;">● 삭제됨 · '+absTime(c.del)+'</div>';
     } else {
       var isOwner = c.uid === me.uid;
       el.innerHTML = [
-        '<div style="padding:10px 16px;border-bottom:1px solid #1e1e1e;">',
+        '<div style="padding:10px 16px;border-bottom:1px solid var(--border-sub);">',
         '<div style="display:flex;gap:8px;">',
         avatar(c.nick, 28),
         '<div style="flex:1;"><div style="display:flex;align-items:baseline;gap:6px;margin-bottom:4px;">',
-        '<span style="font-size:12px;color:#e8e8e8;">'+nickHtml(c.nick,c.pseudo)+'</span>',
-        '<span style="font-size:10px;color:#444;">· '+relTime(c.at)+'</span></div>',
-        '<div style="font-size:12px;color:#bbb;line-height:1.55;word-break:break-word;">'+esc(c.txt)+'</div>',
+        '<span style="font-size:12px;color:var(--text);">'+nickHtml(c.nick,c.pseudo)+'</span>',
+        '<span style="font-size:10px;color:var(--text-dim);">· '+relTime(c.at)+'</span></div>',
+        '<div style="font-size:12px;color:var(--text-body);line-height:1.55;word-break:break-word;">'+esc(c.txt)+'</div>',
         '<div style="display:flex;gap:10px;margin-top:6px;">',
         '<button class="btn-ghost" id="rep-'+c.id+'">답글</button>',
         isOwner ? '<button class="del-btn" style="margin-left:0;" id="dc-'+c.id+'">삭제</button>' : '',
@@ -533,18 +587,18 @@ function detailPage(pid) {
   function mkReply(r) {
     var el = document.createElement('div');
     if (r.del) {
-      el.innerHTML = '<div style="padding:8px 16px 8px 52px;border-bottom:1px solid #191919;color:#222;font-size:10px;">● 삭제됨 · '+absTime(r.del)+'</div>';
+      el.innerHTML = '<div style="padding:8px 16px 8px 52px;border-bottom:1px solid var(--border-sub);color:var(--text-dim);font-size:10px;">● 삭제됨 · '+absTime(r.del)+'</div>';
       return el;
     }
     var isOwner = r.uid === me.uid;
     el.innerHTML = [
-      '<div style="padding:8px 16px 8px 52px;border-bottom:1px solid #191919;">',
+      '<div style="padding:8px 16px 8px 52px;border-bottom:1px solid var(--border-sub);">',
       '<div style="display:flex;gap:8px;">',
       avatar(r.nick, 24),
       '<div style="flex:1;"><div style="display:flex;align-items:baseline;gap:6px;margin-bottom:3px;">',
-      '<span style="font-size:11px;color:#e8e8e8;">'+nickHtml(r.nick,r.pseudo)+'</span>',
-      '<span style="font-size:10px;color:#444;">· '+relTime(r.at)+'</span></div>',
-      '<div style="font-size:11px;color:#aaa;line-height:1.5;word-break:break-word;">'+esc(r.txt)+'</div>',
+      '<span style="font-size:11px;color:var(--text);">'+nickHtml(r.nick,r.pseudo)+'</span>',
+      '<span style="font-size:10px;color:var(--text-dim);">· '+relTime(r.at)+'</span></div>',
+      '<div style="font-size:11px;color:var(--text-faint);line-height:1.5;word-break:break-word;">'+esc(r.txt)+'</div>',
       isOwner ? '<button class="del-btn" style="margin-left:0;margin-top:4px;" id="dr-'+r.id+'">삭제</button>' : '',
       '</div></div></div>'
     ].join('');
@@ -558,9 +612,8 @@ function detailPage(pid) {
     return el;
   }
 
-  // 댓글 입력
   var cInput = document.createElement('div');
-  cInput.style.cssText = 'position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#0d0d0d;border-top:1px solid #2a2a2a;padding:10px 16px;z-index:10;';
+  cInput.style.cssText = 'position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--bg);border-top:1px solid var(--border);padding:10px 16px;z-index:10;';
   var inp = document.createElement('input');
   inp.id = 'd-inp';
   inp.type = 'text';
@@ -569,9 +622,9 @@ function detailPage(pid) {
   inp.style.cssText = 'width:calc(100% - 36px);padding-right:8px;';
   var sendBtn = document.createElement('button');
   sendBtn.textContent = '↑';
-  sendBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:18px;color:#555;padding:0 0 0 8px;vertical-align:middle;transition:color .15s;';
-  sendBtn.onmouseover = function(){this.style.color='#e8e8e8';};
-  sendBtn.onmouseout = function(){this.style.color='#555';};
+  sendBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:18px;color:var(--text-muted);padding:0 0 0 8px;vertical-align:middle;transition:color .15s;';
+  sendBtn.onmouseover = function(){this.style.color='var(--text)';};
+  sendBtn.onmouseout = function(){this.style.color='var(--text-muted)';};
 
   function submit() {
     var txt = inp.value.trim();
@@ -608,7 +661,7 @@ function myPage() {
   backBtn.onclick = function() { R.go('/'); };
   var title = document.createElement('span');
   title.textContent = '내 흔적 모음';
-  title.style.cssText = 'font-size:12px;color:#888;';
+  title.style.cssText = 'font-size:12px;color:var(--text-muted);';
   var logoutBtn = document.createElement('button');
   logoutBtn.className = 'btn-ghost';
   logoutBtn.textContent = '로그아웃';
@@ -616,20 +669,19 @@ function myPage() {
   hdr.appendChild(backBtn); hdr.appendChild(title); hdr.appendChild(logoutBtn);
   wrap.appendChild(hdr);
 
-  // 프로필
   var prof = document.createElement('div');
-  prof.style.cssText = 'display:flex;flex-direction:column;align-items:center;padding:24px 16px;border-bottom:1px solid #2a2a2a;gap:10px;';
-  prof.innerHTML = avatar(me.nick, 52)+'<div style="text-align:center;"><div style="font-size:13px;color:#e8e8e8;">'+nickHtml(me.nick,me.pseudo)+'</div><div style="font-size:11px;color:#444;margin-top:4px;">내가 남긴 흔적 '+posts.filter(function(p){return !p.del;}).length+'개</div></div>';
+  prof.style.cssText = 'display:flex;flex-direction:column;align-items:center;padding:24px 16px;border-bottom:1px solid var(--border);gap:10px;';
+  prof.innerHTML = avatar(me.nick, 52)+'<div style="text-align:center;"><div style="font-size:13px;color:var(--text);">'+nickHtml(me.nick,me.pseudo)+'</div><div style="font-size:11px;color:var(--text-dim);margin-top:4px;">내가 남긴 흔적 '+posts.filter(function(p){return !p.del;}).length+'개</div></div>';
   wrap.appendChild(prof);
 
   var tabLabel = document.createElement('div');
-  tabLabel.style.cssText = 'padding:10px 16px;border-bottom:1px solid #2a2a2a;font-size:11px;color:#888;';
+  tabLabel.style.cssText = 'padding:10px 16px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text-muted);';
   tabLabel.textContent = '내 글 ('+posts.length+')';
   wrap.appendChild(tabLabel);
 
   if (posts.length === 0) {
     var empty = document.createElement('div');
-    empty.style.cssText = 'text-align:center;padding:40px;color:#444;font-size:11px;';
+    empty.style.cssText = 'text-align:center;padding:40px;color:var(--text-dim);font-size:11px;';
     empty.textContent = '아직 남긴 흔적이 없어요.';
     wrap.appendChild(empty);
   } else {
@@ -643,6 +695,7 @@ function myPage() {
 }
 
 // ── 시작 ────────────────────────────────────────────────────────────
+applyTheme(S.theme());
 R.render();
 </script>
 </body>
