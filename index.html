@@ -144,61 +144,63 @@
     .tile {
       border: 0.5px solid var(--border);
       border-radius: 12px;
-      padding: 14px 16px 12px;
+      overflow: hidden;
       cursor: pointer;
       transition: transform .12s;
       border-left-width: 3px;
-      overflow: hidden;
     }
     .tile:hover { transform: translateX(3px); }
 
-    /* 상단: 시간 뱃지 */
-    .tile-header {
-      display: flex; justify-content: flex-end;
-      margin-bottom: 8px;
+    /* 상단 헤더: 내용 + 시간 */
+    .tile-head {
+      display: flex; align-items: flex-start;
+      justify-content: space-between; gap: 10px;
+      padding: 12px 14px 10px;
     }
-    .tile-time-badge {
+    .tile-txt {
+      font-size: 13px; font-weight: 500;
+      color: var(--text-body); line-height: 1.65;
+      word-break: break-word; flex: 1;
+    }
+    .tile-since {
       font-size: 10px; color: var(--text-dim);
-      background: var(--bg-elevated);
-      border: 0.5px solid var(--border);
-      border-radius: 20px; padding: 2px 8px;
+      white-space: nowrap; flex-shrink: 0;
+      margin-top: 3px;
     }
 
-    /* 본문 */
-    .tile-body {
-      font-size: 13px; color: var(--text-body); line-height: 1.65;
-      word-break: break-word; margin-bottom: 12px;
+    /* 하단 메타 영역: 흰 배경 */
+    .tile-rows {
+      background: var(--bg-surface);
+      border-top: 0.5px solid var(--border);
     }
-
-    /* 구분선 */
-    .tile-divider {
-      border: none; border-top: 0.5px solid var(--border);
-      margin: 0 -16px 10px;
-    }
-
-    /* 메타 행: 아이콘 + 값 */
     .tile-row {
       display: flex; align-items: center; gap: 10px;
-      padding: 4px 0;
+      padding: 7px 14px;
+      font-size: 12px; color: var(--text-muted);
     }
-    .tile-row + .tile-row { border-top: 0.5px solid var(--border-sub); }
+    .tile-row + .tile-row { border-top: 0.5px solid var(--border); }
     .tile-row-icon {
-      width: 18px; flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 11px; color: var(--text-dim);
+      width: 16px; flex-shrink: 0; font-size: 12px;
+      color: var(--text-dim); text-align: center;
     }
     .tile-row-val {
-      font-size: 12px; color: var(--text-muted);
       display: flex; align-items: center; gap: 6px; flex: 1;
+      color: var(--text);
     }
-    .tile-row-val .nick-text { color: var(--text); }
 
     /* 삭제된 카드 */
-    .tile-del-badge {
+    .tile-del-head {
+      padding: 11px 14px 9px;
       display: flex; align-items: center; gap: 8px;
-      font-size: 11px; color: var(--text-dim); margin-bottom: 4px;
+      font-size: 11px; color: var(--text-dim);
     }
-    .tile-del-sub { font-size: 10px; color: var(--text-dim); font-style: italic; }
+    .tile-del-sub { font-size: 10px; font-style: italic; }
+    .tile-del-rows {
+      background: var(--bg-surface);
+      border-top: 0.5px solid var(--border);
+      padding: 7px 14px;
+      font-size: 10px; color: var(--text-dim); font-style: italic;
+    }
 
     /* ── 테마 토글 버튼 ─────────────────────────────────────────── */
     #theme-toggle {
@@ -222,8 +224,6 @@
 var MAX = 280;
 var SURNAMES = ['김','이','박','최','정','강','조','윤','장','임','한','오','서','신','권','황','안','송','류','전','홍','고','문','양','손','배','백','허','유','남'];
 var EN_NAMES = ['james','john','robert','michael','william','david','mary','patricia','jennifer','minho','junho','jinho','soyeon','minji','hyunji'];
-var COLORS = [['#2d1b69','#c4b5fd'],['#1e3a5f','#93c5fd'],['#14532d','#86efac'],['#713f12','#fde68a'],['#7f1d1d','#fca5a5'],['#1e1b4b','#a5b4fc']];
-
 // ── 유틸 ────────────────────────────────────────────────────────────
 function mkId() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
@@ -237,7 +237,14 @@ function isPseudo(nick) {
 function nick2color(nick) {
   var h = 0;
   for (var i = 0; i < nick.length; i++) h = nick.charCodeAt(i) + ((h << 5) - h);
-  return COLORS[Math.abs(h) % COLORS.length];
+  var hue = Math.abs(h) % 360;
+  return {
+    hue: hue,
+    border:  'hsl('+hue+',60%,60%)',
+    tint:    'hsla('+hue+',70%,52%,0.09)',
+    avBg:    'hsl('+hue+',40%,22%)',
+    avText:  'hsl('+hue+',70%,82%)'
+  };
 }
 
 function getInitial(nick) { return (nick || '?')[0].toUpperCase(); }
@@ -260,7 +267,7 @@ function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').re
 function avatar(nick, size) {
   size = size || 36;
   var c = nick2color(nick), fs = size < 30 ? 11 : size < 50 ? 14 : 20;
-  return '<div class="avatar" style="width:'+size+'px;height:'+size+'px;background:'+c[0]+';color:'+c[1]+';font-size:'+fs+'px;">'+getInitial(nick)+'</div>';
+  return '<div class="avatar" style="width:'+size+'px;height:'+size+'px;background:'+c.avBg+';color:'+c.avText+';font-size:'+fs+'px;">'+getInitial(nick)+'</div>';
 }
 
 function nickHtml(nick, pseudo) {
@@ -423,7 +430,7 @@ function authPage() {
     if (!circle) return;
     if (nick) {
       var c = nick2color(nick);
-      circle.style.background = c[0]; circle.style.color = c[1];
+      circle.style.background = c.avBg; circle.style.color = c.avText;
       circle.textContent = getInitial(nick);
       if (label) label.innerHTML = esc(nick) + (isPseudo(nick) ? ' <span style="color:#ca8a04">(가명)</span>' : '');
     } else {
@@ -523,12 +530,12 @@ function makeCard(post, me) {
   var op = postOpacity(post);
   var tile = document.createElement('div');
   tile.className = 'tile';
-  tile.style.cssText = 'border-left-color:'+c[1]+';opacity:'+op+';';
+  tile.style.cssText = 'border-left-color:'+c.border+';opacity:'+op+';';
 
   if (post.del) {
     tile.innerHTML = [
-      '<div class="tile-del-badge"><span>╳</span><span>삭제됨 · '+absTime(post.del)+'</span></div>',
-      '<div class="tile-del-sub">이 흔적은 지워졌습니다</div>'
+      '<div class="tile-del-head"><span>╳</span><span class="tile-del-sub">삭제됨 · '+absTime(post.del)+'</span></div>',
+      '<div class="tile-del-rows">이 흔적은 지워졌습니다</div>'
     ].join('');
     row.appendChild(tile);
     return row;
@@ -536,34 +543,37 @@ function makeCard(post, me) {
 
   var liked = S.isLiked(post.id, me.uid);
   tile.innerHTML = [
-    /* 상단 시간 뱃지 */
-    '<div class="tile-header">',
-    '<span class="tile-time-badge">'+relTime(post.upd||post.at)+'</span>',
+    /* 상단 헤더: 내용 + 시간 */
+    '<div class="tile-head" style="background:'+c.tint+';">',
+    '<div class="tile-txt">'+esc(post.txt)+'</div>',
+    '<div class="tile-since">'+relTime(post.upd||post.at)+'</div>',
     '</div>',
 
-    /* 본문 */
-    '<div class="tile-body">'+esc(post.txt)+'</div>',
-
-    '<hr class="tile-divider">',
+    /* 하단 메타 행 */
+    '<div class="tile-rows">',
 
     /* 행 1 — 작성자 */
     '<div class="tile-row">',
     '<span class="tile-row-icon">'+avatar(post.nick, 16)+'</span>',
-    '<span class="tile-row-val"><span class="nick-text">'+nickHtml(post.nick, post.pseudo)+'</span></span>',
+    '<span class="tile-row-val">'+nickHtml(post.nick, post.pseudo)+'</span>',
     '</div>',
 
     /* 행 2 — 좋아요 · 댓글 · 삭제 */
     '<div class="tile-row">',
-    '<span class="tile-row-icon" style="font-size:12px;color:'+(liked?'#f472b6':'var(--text-dim)')+';" id="lico-wrap-'+post.id+'">',
+    '<span class="tile-row-icon">',
     '<button class="like-btn" id="lbtn-'+post.id+'" style="color:'+(liked?'#f472b6':'var(--text-dim)')+';">',
     '<span id="lico-'+post.id+'">'+(liked?'♥':'♡')+'</span>',
-    '</button></span>',
+    '</button>',
+    '</span>',
     '<span class="tile-row-val">',
     '<span id="lcnt-'+post.id+'">'+(post.likes||0)+'</span>',
     '<span style="color:var(--border);">·</span>',
-    '<span>💬</span><span>'+(post.comments||0)+'</span>',
+    '<span style="font-size:11px;">💬</span>',
+    '<span>'+(post.comments||0)+'</span>',
     me.uid===post.uid ? '<button class="del-btn" style="margin-left:auto;" id="delbtn-'+post.id+'">삭제</button>' : '',
     '</span>',
+    '</div>',
+
     '</div>'
   ].join('');
 
@@ -858,7 +868,7 @@ function myPage() {
       inp.oninput = function() {
         var v = this.value.trim() || me.nick;
         var c = nick2color(v);
-        avWrap.innerHTML = '<div class="avatar" style="width:52px;height:52px;background:'+c[0]+';color:'+c[1]+';font-size:20px;">'+getInitial(v)+'</div>';
+        avWrap.innerHTML = '<div class="avatar" style="width:52px;height:52px;background:'+c.avBg+';color:'+c.avText+';font-size:20px;">'+getInitial(v)+'</div>';
         preview.innerHTML = nickHtml(v, isPseudo(v));
       };
       prof.querySelector('#prof-save').onclick = function() {
