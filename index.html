@@ -142,34 +142,58 @@
     }
 
     .tile {
-      background: var(--bg-surface);
       border: 0.5px solid var(--border);
       border-radius: 12px;
-      padding: 14px 16px 11px;
+      padding: 14px 16px 12px;
       cursor: pointer;
-      transition: transform .12s, box-shadow .12s;
+      transition: transform .12s;
       border-left-width: 3px;
+      overflow: hidden;
     }
     .tile:hover { transform: translateX(3px); }
 
+    /* 상단: 시간 뱃지 */
+    .tile-header {
+      display: flex; justify-content: flex-end;
+      margin-bottom: 8px;
+    }
+    .tile-time-badge {
+      font-size: 10px; color: var(--text-dim);
+      background: var(--bg-elevated);
+      border: 0.5px solid var(--border);
+      border-radius: 20px; padding: 2px 8px;
+    }
+
+    /* 본문 */
     .tile-body {
       font-size: 13px; color: var(--text-body); line-height: 1.65;
-      word-break: break-word; margin-bottom: 11px;
+      word-break: break-word; margin-bottom: 12px;
     }
+
+    /* 구분선 */
     .tile-divider {
       border: none; border-top: 0.5px solid var(--border);
-      margin: 0 -16px 9px;
+      margin: 0 -16px 10px;
     }
-    .tile-meta-row {
-      display: flex; align-items: center; gap: 7px; margin-bottom: 7px;
-    }
-    .tile-nick { font-size: 12px; color: var(--text); }
-    .tile-time { font-size: 10px; color: var(--text-dim); margin-left: auto; }
-    .tile-stats {
-      display: flex; align-items: center; gap: 12px;
-    }
-    .tile-stat { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 3px; }
 
+    /* 메타 행: 아이콘 + 값 */
+    .tile-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 4px 0;
+    }
+    .tile-row + .tile-row { border-top: 0.5px solid var(--border-sub); }
+    .tile-row-icon {
+      width: 18px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; color: var(--text-dim);
+    }
+    .tile-row-val {
+      font-size: 12px; color: var(--text-muted);
+      display: flex; align-items: center; gap: 6px; flex: 1;
+    }
+    .tile-row-val .nick-text { color: var(--text); }
+
+    /* 삭제된 카드 */
     .tile-del-badge {
       display: flex; align-items: center; gap: 8px;
       font-size: 11px; color: var(--text-dim); margin-bottom: 4px;
@@ -512,20 +536,34 @@ function makeCard(post, me) {
 
   var liked = S.isLiked(post.id, me.uid);
   tile.innerHTML = [
-    '<div class="tile-body">'+esc(post.txt)+'</div>',
-    '<hr class="tile-divider">',
-    '<div class="tile-meta-row">',
-    avatar(post.nick, 22),
-    '<span class="tile-nick">'+nickHtml(post.nick, post.pseudo)+'</span>',
-    '<span class="tile-time">'+relTime(post.upd||post.at)+'</span>',
+    /* 상단 시간 뱃지 */
+    '<div class="tile-header">',
+    '<span class="tile-time-badge">'+relTime(post.upd||post.at)+'</span>',
     '</div>',
-    '<div class="tile-stats">',
-    '<button class="like-btn tile-stat" id="lbtn-'+post.id+'" style="color:'+(liked?'#f472b6':'var(--text-muted)')+';">',
+
+    /* 본문 */
+    '<div class="tile-body">'+esc(post.txt)+'</div>',
+
+    '<hr class="tile-divider">',
+
+    /* 행 1 — 작성자 */
+    '<div class="tile-row">',
+    '<span class="tile-row-icon">'+avatar(post.nick, 16)+'</span>',
+    '<span class="tile-row-val"><span class="nick-text">'+nickHtml(post.nick, post.pseudo)+'</span></span>',
+    '</div>',
+
+    /* 행 2 — 좋아요 · 댓글 · 삭제 */
+    '<div class="tile-row">',
+    '<span class="tile-row-icon" style="font-size:12px;color:'+(liked?'#f472b6':'var(--text-dim)')+';" id="lico-wrap-'+post.id+'">',
+    '<button class="like-btn" id="lbtn-'+post.id+'" style="color:'+(liked?'#f472b6':'var(--text-dim)')+';">',
     '<span id="lico-'+post.id+'">'+(liked?'♥':'♡')+'</span>',
+    '</button></span>',
+    '<span class="tile-row-val">',
     '<span id="lcnt-'+post.id+'">'+(post.likes||0)+'</span>',
-    '</button>',
-    '<span class="tile-stat">💬 '+(post.comments||0)+'</span>',
+    '<span style="color:var(--border);">·</span>',
+    '<span>💬</span><span>'+(post.comments||0)+'</span>',
     me.uid===post.uid ? '<button class="del-btn" style="margin-left:auto;" id="delbtn-'+post.id+'">삭제</button>' : '',
+    '</span>',
     '</div>'
   ].join('');
 
