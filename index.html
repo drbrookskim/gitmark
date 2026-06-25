@@ -120,6 +120,43 @@
       transition: border-color .15s, color .15s;
     }
     .write-pill:hover { border-color: var(--text-muted); color: var(--text); }
+    .edit-pill {
+      font-size: 10px; color: var(--text-dim);
+      background: none; border: 0.5px solid var(--border);
+      border-radius: 20px; padding: 2px 8px; cursor: pointer;
+      font-family: 'JetBrains Mono', monospace;
+      transition: border-color .15s, color .15s;
+    }
+    .edit-pill:hover { border-color: var(--text-muted); color: var(--text); }
+
+    /* ── 커스텀 모달 ─────────────────────────────────────────────── */
+    .gm-overlay {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,.45);
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .gm-dialog {
+      background: var(--bg-surface);
+      border: 0.5px solid var(--border);
+      border-radius: 14px;
+      padding: 24px 20px 18px;
+      width: 100%; max-width: 300px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .gm-msg {
+      font-size: 13px; color: var(--text-body);
+      line-height: 1.6; margin-bottom: 18px; text-align: center;
+    }
+    .gm-btns { display: flex; gap: 8px; }
+    .gm-btn {
+      flex: 1; padding: 9px; border-radius: 8px; cursor: pointer;
+      font-size: 12px; font-family: 'JetBrains Mono', monospace;
+      border: 0.5px solid var(--border); transition: opacity .15s;
+    }
+    .gm-btn:hover { opacity: .8; }
+    .gm-btn-cancel { background: var(--bg-elevated); color: var(--text-muted); }
+    .gm-btn-confirm { background: var(--text); color: var(--bg); }
     .avatar {
       border-radius: 50%; display: flex; align-items: center;
       justify-content: center; font-weight: 500; flex-shrink: 0;
@@ -362,6 +399,25 @@ document.getElementById('theme-toggle').onclick = function() {
   applyTheme(next);
 };
 
+// ── 커스텀 모달 ──────────────────────────────────────────────────────
+function gModal(msg, onConfirm, confirmLabel) {
+  confirmLabel = confirmLabel || '확인';
+  var ov = document.createElement('div');
+  ov.className = 'gm-overlay';
+  ov.innerHTML = [
+    '<div class="gm-dialog">',
+    '<div class="gm-msg">'+msg+'</div>',
+    '<div class="gm-btns">',
+    '<button class="gm-btn gm-btn-cancel">취소</button>',
+    '<button class="gm-btn gm-btn-confirm">'+confirmLabel+'</button>',
+    '</div></div>'
+  ].join('');
+  ov.querySelector('.gm-btn-cancel').onclick = function() { document.body.removeChild(ov); };
+  ov.querySelector('.gm-btn-confirm').onclick = function() { document.body.removeChild(ov); onConfirm(); };
+  ov.onclick = function(e) { if (e.target === ov) document.body.removeChild(ov); };
+  document.body.appendChild(ov);
+}
+
 // ── 라우터 (해시 기반) ───────────────────────────────────────────────
 var R = {
   path: function() { return location.hash.replace(/^#/,'') || '/'; },
@@ -591,7 +647,7 @@ function makeCard(post, me) {
     '<div class="tile-row">',
     '<span class="tile-row-icon">'+avatar(post.nick, 16)+'</span>',
     '<span class="tile-row-val">'+nickHtml(post.nick, post.pseudo)+
-      (me.uid===post.uid ? ' <button id="nick-edit-'+post.id+'" style="background:none;border:none;cursor:pointer;font-size:10px;color:var(--text-dim);padding:0 0 0 4px;">✏</button>' : '')+
+      (me.uid===post.uid ? ' <button id="nick-edit-'+post.id+'" class="edit-pill">✏ 수정</button>' : '')+
     '</span>',
     '</div>',
 
@@ -642,8 +698,10 @@ function makeCard(post, me) {
     };
     tile.querySelector('#delbtn-'+post.id).onclick = function(e) {
       e.stopPropagation();
-      if (!confirm('이 흔적을 지우시겠어요? 60초 후 완전히 사라집니다.')) return;
-      S.deletePost(post.id); R.render();
+      var pid = post.id;
+      gModal('이 흔적을 지울까요?<br><span style="font-size:10px;color:var(--text-dim);">60초 후 완전히 사라집니다</span>', function() {
+        S.deletePost(pid); R.render();
+      }, '삭제');
     };
   }
   tile.onclick = function() { R.go('/post/'+post.id); };
@@ -666,7 +724,10 @@ function writePage() {
   cancelBtn.textContent = '취소';
   cancelBtn.onclick = function() {
     var ta = document.getElementById('write-ta');
-    if (ta && ta.value.trim() && !confirm('작성 중인 내용이 사라집니다. 취소할까요?')) return;
+    if (ta && ta.value.trim()) {
+      gModal('작성 중인 내용이 사라집니다.<br>취소할까요?', function() { history.back() || R.go('/'); });
+      return;
+    }
     history.back() || R.go('/');
   };
   var submitBtn = document.createElement('button');
@@ -717,7 +778,7 @@ function writePage() {
       nickBar.innerHTML = [
         avatar(me.nick, 24),
         '<span style="font-size:12px;">'+nickHtml(me.nick, me.pseudo)+'</span>',
-        '<button id="w-nick-edit" style="background:none;border:none;cursor:pointer;font-size:10px;color:var(--text-dim);padding:0;">✏</button>'
+        '<button id="w-nick-edit" class="edit-pill">✏ 수정</button>'
       ].join('');
       nickBar.querySelector('#w-nick-edit').onclick = function() { renderWriteNick(true); };
     }
@@ -795,8 +856,9 @@ function detailPage(pid) {
     };
     if (me.uid===post.uid) {
       postEl.querySelector('#d-del').onclick = function() {
-        if (!confirm('이 흔적을 지우시겠어요? 삭제 시각은 남습니다.')) return;
-        S.deletePost(pid); R.go('/');
+        gModal('이 흔적을 지울까요?<br><span style="font-size:10px;color:var(--text-dim);">60초 후 완전히 사라집니다</span>', function() {
+          S.deletePost(pid); R.go('/');
+        }, '삭제');
       };
     }
   }
@@ -837,11 +899,12 @@ function detailPage(pid) {
       ].join('');
       el.querySelector('#rep-'+c.id).onclick = function() { replyTo = c.id; var inp=document.getElementById('d-inp'); if(inp){inp.placeholder='@'+c.nick+'에 답글'; inp.focus();} };
       if (isOwner) {
-        el.querySelector('#dc-'+c.id).onclick = function() {
-          if (!confirm('댓글을 삭제할까요?')) return;
-          S.delComment(pid, c.id); S.incComments(pid,-1); renderComments();
-          var cnt=document.getElementById('d-cmt-cnt'); if(cnt)cnt.textContent=(S.getPost(pid)||{}).comments||0;
-        };
+        el.querySelector('#dc-'+c.id).onclick = (function(cid) { return function() {
+          gModal('이 댓글을 삭제할까요?', function() {
+            S.delComment(pid, cid); S.incComments(pid,-1); renderComments();
+            var cnt=document.getElementById('d-cmt-cnt'); if(cnt)cnt.textContent=(S.getPost(pid)||{}).comments||0;
+          }, '삭제');
+        }; })(c.id);
       }
     }
     replies.forEach(function(r) { el.appendChild(mkReply(r)); });
@@ -867,11 +930,12 @@ function detailPage(pid) {
       '</div></div></div>'
     ].join('');
     if (isOwner) {
-      el.querySelector('#dr-'+r.id).onclick = function() {
-        if (!confirm('댓글을 삭제할까요?')) return;
-        S.delComment(pid, r.id); S.incComments(pid,-1); renderComments();
-        var cnt=document.getElementById('d-cmt-cnt'); if(cnt)cnt.textContent=(S.getPost(pid)||{}).comments||0;
-      };
+      el.querySelector('#dr-'+r.id).onclick = (function(rid) { return function() {
+        gModal('이 댓글을 삭제할까요?', function() {
+          S.delComment(pid, rid); S.incComments(pid,-1); renderComments();
+          var cnt=document.getElementById('d-cmt-cnt'); if(cnt)cnt.textContent=(S.getPost(pid)||{}).comments||0;
+        }, '삭제');
+      }; })(r.id);
     }
     return el;
   }
@@ -971,7 +1035,7 @@ function profilePage() {
         '<div style="text-align:center;">',
         '<div style="display:flex;align-items:center;gap:6px;justify-content:center;margin-bottom:4px;">',
         '<span style="font-size:15px;font-weight:500;">'+nickHtml(me.nick, me.pseudo)+'</span>',
-        '<button id="prof-edit-btn" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text-dim);padding:0 2px;">✏</button>',
+        '<button id="prof-edit-btn" class="edit-pill">✏ 수정</button>',
         '</div>',
         '<div style="font-size:11px;color:var(--text-dim);">흔적 '+postCount+'개</div>',
         '</div>'
