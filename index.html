@@ -730,7 +730,7 @@ function feedPage() {
   hdr.innerHTML = '<span style="font-size:13px;letter-spacing:.22em;">gitmark</span>';
   var writeBtn = document.createElement('button');
   writeBtn.className = 'write-pill';
-  writeBtn.textContent = '+ 흔적 남기기';
+  writeBtn.textContent = '+ mark';
   writeBtn.onclick = function() { R.go('/write'); };
   hdr.appendChild(writeBtn);
   wrap.appendChild(hdr);
