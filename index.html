@@ -1107,12 +1107,40 @@ async function detailPage(pid, me) {
   var bodyEl = postEl.querySelector('#d-post-body');
   if (bodyEl) typewriterReveal(bodyEl, post.txt);
 
+  // ── 댓글 입력창 (포스트 바로 아래, 인라인) ──
+  var cInput = document.createElement('div');
+  cInput.style.cssText = 'display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--bg);';
+  var myAv = me.avatar_url
+    ? '<img src="'+esc(me.avatar_url)+'" referrerpolicy="no-referrer" style="width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0;">'
+    : avatar(me.nick, 26);
+  cInput.innerHTML = myAv;
+  var inp = document.createElement('input');
+  inp.id = 'd-inp';
+  inp.type = 'text';
+  inp.className = 'input-field';
+  inp.placeholder = '댓글을 남기세요…';
+  inp.style.cssText = 'flex:1;padding:6px 10px;font-size:12px;height:32px;';
+  var sendBtn = document.createElement('button');
+  sendBtn.innerHTML = '<i class="ti ti-send" style="font-size:14px;"></i>';
+  sendBtn.style.cssText = 'background:none;border:none;cursor:pointer;color:var(--text-muted);padding:4px;transition:color .15s;flex-shrink:0;';
+  sendBtn.onmouseover = function(){this.style.color='var(--text)';};
+  sendBtn.onmouseout = function(){this.style.color='var(--text-muted)';};
+  cInput.appendChild(inp);
+  cInput.appendChild(sendBtn);
+  wrap.appendChild(cInput);
+
+  // ── 댓글 목록 ──
   var cList = document.createElement('div');
   cList.id = 'd-clist';
   wrap.appendChild(cList);
 
   var replyTo = null;
   var allComments = cmtRes.data || [];
+
+  function appendCommentEl(c) {
+    var replies = allComments.filter(function(r){ return r.parent_id===c.id; });
+    cList.appendChild(c.parent_id ? mkReply(c) : mkComment(c, replies));
+  }
 
   function renderComments() {
     var top = allComments.filter(function(c){ return !c.parent_id; });
@@ -1141,14 +1169,14 @@ async function detailPage(pid, me) {
         isOwner ? '<button class="del-btn" style="margin-left:0;" id="dc-'+c.id+'">삭제</button>' : '',
         '</div></div></div></div>'
       ].join('');
-      el.querySelector('#rep-'+c.id).onclick = function() { replyTo = c.id; var inp=document.getElementById('d-inp'); if(inp){inp.placeholder='@'+c.nick+'에 답글'; inp.focus();} };
+      el.querySelector('#rep-'+c.id).onclick = function() { replyTo = c.id; inp.placeholder='@'+c.nick+'에 답글'; inp.focus(); };
       if (isOwner) {
         el.querySelector('#dc-'+c.id).onclick = (function(cid) { return function() {
           gModal('이 댓글을 삭제할까요?', async function() {
             await SB.from('comments').update({ del: Date.now() }).eq('id', cid);
             allComments = allComments.map(function(cm){ return cm.id===cid ? Object.assign({},cm,{del:Date.now()}) : cm; });
-            await SB.from('posts').update({ comments_count: Math.max(0,(post.comments_count||0)-1) }).eq('id', pid);
             post.comments_count = Math.max(0,(post.comments_count||0)-1);
+            await SB.from('posts').update({ comments_count: post.comments_count }).eq('id', pid);
             var cnt=document.getElementById('d-cmt-cnt'); if(cnt)cnt.textContent=post.comments_count;
             renderComments();
           }, '삭제');
@@ -1182,8 +1210,8 @@ async function detailPage(pid, me) {
         gModal('이 댓글을 삭제할까요?', async function() {
           await SB.from('comments').update({ del: Date.now() }).eq('id', rid);
           allComments = allComments.map(function(cm){ return cm.id===rid ? Object.assign({},cm,{del:Date.now()}) : cm; });
-          await SB.from('posts').update({ comments_count: Math.max(0,(post.comments_count||0)-1) }).eq('id', pid);
           post.comments_count = Math.max(0,(post.comments_count||0)-1);
+          await SB.from('posts').update({ comments_count: post.comments_count }).eq('id', pid);
           var cnt=document.getElementById('d-cmt-cnt'); if(cnt)cnt.textContent=post.comments_count;
           renderComments();
         }, '삭제');
@@ -1192,20 +1220,6 @@ async function detailPage(pid, me) {
     return el;
   }
 
-  var cInput = document.createElement('div');
-  cInput.style.cssText = 'position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:680px;background:var(--bg);border-top:1px solid var(--border);padding:10px 16px;z-index:10;';
-  var inp = document.createElement('input');
-  inp.id = 'd-inp';
-  inp.type = 'text';
-  inp.className = 'input-field';
-  inp.placeholder = '흔적을 남기세요';
-  inp.style.cssText = 'width:calc(100% - 36px);padding-right:8px;';
-  var sendBtn = document.createElement('button');
-  sendBtn.textContent = '↑';
-  sendBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:18px;color:var(--text-muted);padding:0 0 0 8px;vertical-align:middle;transition:color .15s;';
-  sendBtn.onmouseover = function(){this.style.color='var(--text)';};
-  sendBtn.onmouseout = function(){this.style.color='var(--text-muted)';};
-
   var _submitting = false;
   function submit() {
     if (_submitting) return;
@@ -1213,22 +1227,46 @@ async function detailPage(pid, me) {
     if (!txt) return;
     _submitting = true;
     var parentId = replyTo;
-    inp.value = ''; inp.placeholder = '흔적을 남기세요'; replyTo = null;
+    inp.value = ''; inp.placeholder = '댓글을 남기세요…'; replyTo = null;
     var newComment = { id: mkId(), post_id: pid, parent_id: parentId, uid: me.uid, nick: me.nick, pseudo: me.pseudo, txt: txt, at: Date.now(), del: null };
+    // 즉시 UI에 추가
+    allComments.push(newComment);
+    if (parentId) {
+      renderComments();
+    } else {
+      cList.appendChild(mkComment(newComment, []));
+    }
+    // 서버에 저장
     SB.from('comments').insert(newComment).then(function() {
-      SB.from('posts').update({ comments_count: (post.comments_count||0)+1 }).eq('id', pid);
       post.comments_count = (post.comments_count||0)+1;
+      SB.from('posts').update({ comments_count: post.comments_count }).eq('id', pid);
       var cnt=document.getElementById('d-cmt-cnt'); if(cnt)cnt.textContent=post.comments_count;
     });
-    allComments.push(newComment);
-    renderComments();
     setTimeout(function(){ _submitting = false; }, 300);
   }
   inp.onkeydown = function(e){ if(e.key==='Enter'){ e.preventDefault(); submit(); } };
   sendBtn.onclick = function(e){ e.preventDefault(); submit(); };
-  cInput.appendChild(inp);
-  cInput.appendChild(sendBtn);
-  wrap.appendChild(cInput);
+
+  // ── Supabase Realtime: 다른 사용자 댓글 실시간 반영 ──
+  var channel = SB.channel('comments-'+pid)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comments', filter: 'post_id=eq.'+pid },
+      function(payload) {
+        var c = payload.new;
+        if (allComments.some(function(x){ return x.id===c.id; })) return; // 내가 올린 것 중복 방지
+        allComments.push(c);
+        if (c.parent_id) {
+          renderComments();
+        } else {
+          cList.appendChild(mkComment(c, []));
+        }
+        post.comments_count = (post.comments_count||0)+1;
+        var cnt=document.getElementById('d-cmt-cnt'); if(cnt)cnt.textContent=post.comments_count;
+      }
+    ).subscribe();
+
+  // 페이지 이동 시 구독 해제
+  var _unsubDetail = function() { SB.removeChannel(channel); };
+  window.addEventListener('hashchange', _unsubDetail, { once: true });
 
   renderComments();
   return wrap;
