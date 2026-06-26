@@ -595,19 +595,25 @@ SB.auth.onAuthStateChange(function(event) {
 });
 
 // ── 공통: 탭바 ──────────────────────────────────────────────────────
-function tabBar(active) {
+function tabBar(active, me) {
   var tabs = [
-    {icon:'ti-home',         label:'피드',  path:'/'},
-    {icon:'ti-pencil',       label:'쓰기',  path:'/write'},
-    {icon:'ti-notes',        label:'내 글', path:'/my'},
-    {icon:'ti-user-circle',  label:'마이',  path:'/profile'}
+    {icon:'ti-home',    label:'피드',  path:'/'},
+    {icon:'ti-pencil',  label:'쓰기',  path:'/write'},
+    {icon:'ti-notes',   label:'내 글', path:'/my'},
+    {icon:null,         label:'my page', path:'/profile'}
   ];
   var nav = document.createElement('nav');
   nav.className = 'tab-bar';
   tabs.forEach(function(t) {
     var btn = document.createElement('button');
-    btn.innerHTML = '<i class="ti '+t.icon+'" aria-hidden="true"></i><span>'+t.label+'</span>';
-    btn.style.color = active === t.path ? 'var(--text)' : 'var(--text-muted)';
+    var isActive = active === t.path;
+    if (t.path === '/profile' && me && me.avatar_url) {
+      var dim = isActive ? '1' : '0.45';
+      btn.innerHTML = '<img src="'+esc(me.avatar_url)+'" referrerpolicy="no-referrer" style="width:22px;height:22px;border-radius:50%;object-fit:cover;opacity:'+dim+';transition:opacity .15s;"><span>'+t.label+'</span>';
+    } else {
+      btn.innerHTML = '<i class="ti '+t.icon+'" aria-hidden="true"></i><span>'+t.label+'</span>';
+    }
+    btn.style.color = isActive ? 'var(--text)' : 'var(--text-muted)';
     btn.onclick = function() { R.go(t.path); };
     nav.appendChild(btn);
   });
@@ -762,7 +768,7 @@ async function feedPage(me) {
     });
     wrap.appendChild(indexWrap);
   }
-  wrap.appendChild(tabBar('/'));
+  wrap.appendChild(tabBar('/', me));
   requestAnimationFrame(startOpacityLoop);
   return wrap;
 }
@@ -836,7 +842,7 @@ function makeCard(post, me, idx, likedSet) {
     '<div class="tile-row">',
     '<span class="tile-row-icon">'+avatar(post.nick, 16)+'</span>',
     '<span class="tile-row-val">'+nickHtml(post.nick, post.pseudo)+
-      (me.uid===post.uid ? ' <button id="nick-edit-'+post.id+'" class="edit-pill">✏ 수정</button>' : '')+
+      (me.uid===post.uid ? ' <button id="nick-edit-'+post.id+'" class="edit-pill">✏</button>' : '')+
     '</span>',
     '<span class="tile-sep">·</span>',
     '<button class="like-btn'+(liked?' liked':'')+'" id="lbtn-'+post.id+'">',
@@ -981,7 +987,7 @@ function writePage(me) {
       nickBar.innerHTML = [
         writeAvatar(),
         '<span style="font-size:12px;">'+nickHtml(me.nick, me.pseudo)+'</span>',
-        '<button id="w-nick-edit" class="edit-pill">✏ 수정</button>'
+        '<button id="w-nick-edit" class="edit-pill">✏</button>'
       ].join('');
       nickBar.querySelector('#w-nick-edit').onclick = function() { renderWriteNick(true); };
     }
@@ -1273,7 +1279,7 @@ async function profilePage(me) {
         '<div style="text-align:center;">',
         '<div style="display:flex;align-items:center;gap:6px;justify-content:center;margin-bottom:2px;">',
         '<span style="font-size:15px;font-weight:500;">'+nickHtml(me.nick, me.pseudo)+'</span>',
-        '<button id="prof-edit-btn" class="edit-pill">✏ 수정</button>',
+        '<button id="prof-edit-btn" class="edit-pill">✏</button>',
         '</div>',
         gNameLine,
         emailLine,
@@ -1284,7 +1290,7 @@ async function profilePage(me) {
   }
   renderProf(false);
   wrap.appendChild(prof);
-  wrap.appendChild(tabBar('/profile'));
+  wrap.appendChild(tabBar('/profile', me));
   return wrap;
 }
 
@@ -1326,7 +1332,7 @@ async function myPage(me) {
     wrap.appendChild(indexWrapM);
   }
 
-  wrap.appendChild(tabBar('/my'));
+  wrap.appendChild(tabBar('/my', me));
   return wrap;
 }
 
