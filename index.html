@@ -6,6 +6,7 @@
   <title>gitmark</title>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Inter:wght@400;500&family=Noto+Sans+KR:wght@400;500&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     /* ── 라이트 (기본) ──────────────────────────────────────────── */
     :root {
@@ -397,53 +398,27 @@ function linkify(txt) {
 }
 
 // ── 스토어 ──────────────────────────────────────────────────────────
+// ── Supabase 클라이언트 ──────────────────────────────────────────────
+var SB = window.supabase.createClient(
+  'https://anvgqeyghquwrvsjmivj.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFudmdxZXlnaHF1d3J2c2ptaXZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4Mjg4MzcsImV4cCI6MjA4NzQwNDgzN30.Lwr3BWTRDyaxN9kEGdj26i-P82Aw_h052e_Ia31WBk0'
+);
+
+// ── 테마(로컬 유지) ──────────────────────────────────────────────────
 var S = {
-  get: function(k) { try { return JSON.parse(localStorage.getItem('gm2_'+k)||'null'); } catch(e){ return null; } },
-  set: function(k,v) { try { localStorage.setItem('gm2_'+k, JSON.stringify(v)); } catch(e){} },
-  me: function() { return S.get('me'); },
-  setMe: function(u) { S.set('me', u); },
-  users: function() { return S.get('users') || {}; },
-  saveUser: function(u) { var m = S.users(); m[u.uid] = u; S.set('users', m); },
-  posts: function() { return S.get('posts') || []; },
-  setPosts: function(ps) { S.set('posts', ps); },
-  addPost: function(p) { var ps = S.posts(); ps.unshift(p); S.set('posts', ps); },
-  getPost: function(id) { return S.posts().find(function(p){ return p.id === id; }); },
-  deletePost: function(id) { var ps = S.posts(); var i = ps.findIndex(function(p){return p.id===id;}); if(i>=0){ps[i].del=Date.now(); S.set('posts',ps);} },
-  comments: function(pid) { return (S.get('comments')||{})[pid]||[]; },
-  addComment: function(pid, c) { var all = S.get('comments')||{}; all[pid]=all[pid]||[]; all[pid].push(c); S.set('comments',all); },
-  delComment: function(pid, cid) { var all = S.get('comments')||{}; var cs=all[pid]||[]; var i=cs.findIndex(function(c){return c.id===cid;}); if(i>=0){cs[i].del=Date.now(); S.set('comments',all);} },
-  likes: function() { return S.get('likes')||{}; },
-  isLiked: function(pid,uid) { return !!(S.likes()[pid+'_'+uid]); },
-  toggleLike: function(pid,uid) {
-    var key=pid+'_'+uid, likes=S.likes(), ps=S.posts(), i=ps.findIndex(function(p){return p.id===pid;});
-    if(likes[key]){ delete likes[key]; if(i>=0)ps[i].likes=Math.max(0,(ps[i].likes||0)-1); }
-    else { likes[key]=true; if(i>=0)ps[i].likes=(ps[i].likes||0)+1; }
-    S.set('likes',likes); S.set('posts',ps);
-    return !!likes[key];
-  },
-  incComments: function(pid, n) {
-    var ps=S.posts(), i=ps.findIndex(function(p){return p.id===pid;});
-    if(i>=0){ps[i].comments=Math.max(0,(ps[i].comments||0)+n); S.set('posts',ps);}
-  },
-  theme: function() { return S.get('theme') || 'light'; },
-  setTheme: function(t) { S.set('theme', t); },
-  nextNick: function() {
-    var n = (S.get('nickCounter') || 0) + 1;
-    S.set('nickCounter', n);
-    return '객' + n;
-  },
-  updateNick: function(nick) {
-    var me = S.me(); if (!me) return;
-    var pseudo = isPseudo(nick);
-    var updated = Object.assign({}, me, { nick: nick, pseudo: pseudo });
-    S.setMe(updated);
-    S.saveUser(updated);
-    var ps = S.posts().map(function(p) {
-      return p.uid === me.uid ? Object.assign({}, p, { nick: nick, pseudo: pseudo }) : p;
-    });
-    S.setPosts(ps);
-  }
+  theme: function() { try { return localStorage.getItem('gm2_theme') || 'light'; } catch(e) { return 'light'; } },
+  setTheme: function(t) { try { localStorage.setItem('gm2_theme', t); } catch(e) {} }
 };
+
+// ── 첫 로그인 프로필 생성 ────────────────────────────────────────────
+async function getOrCreateProfile(user) {
+  var { data } = await SB.from('profiles').select('*').eq('id', user.id).maybeSingle();
+  if (data) return data;
+  var nick = '객' + Math.floor(Math.random() * 9000 + 1000);
+  var profile = { id: user.id, nick: nick, pseudo: false };
+  await SB.from('profiles').insert(profile);
+  return profile;
+}
 
 // ── 테마 ────────────────────────────────────────────────────────────
 function applyTheme(t) {
@@ -585,30 +560,30 @@ function typewriterReveal(el, txt) {
 var R = {
   path: function() { return location.hash.replace(/^#/,'') || '/'; },
   go: function(p) { location.hash = p; },
-  render: function() {
+  render: async function() {
     stopOpacityLoop();
-    var p = R.path(), me = S.me();
     var app = document.getElementById('app');
     if (!app) return;
-    if (!me && p !== '/auth') { R.go('/auth'); return; }
-    if (me && p === '/auth') { R.go('/'); return; }
+    app.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:var(--text-dim);font-family:\'JetBrains Mono\',monospace;font-size:11px;">loading…</div>';
+
+    var { data: { session } } = await SB.auth.getSession();
+    if (!session) { app.innerHTML = ''; app.appendChild(authPage()); return; }
+
+    var profile = await getOrCreateProfile(session.user);
+    var me = { uid: session.user.id, nick: profile.nick, pseudo: profile.pseudo };
     app.innerHTML = '';
-    if (p === '/auth') app.appendChild(authPage());
-    else if (p === '/write') app.appendChild(writePage());
-    else if (p.indexOf('/post/') === 0) app.appendChild(detailPage(p.slice(6)));
-    else if (p === '/my') app.appendChild(myPage());
-    else if (p === '/profile') app.appendChild(profilePage());
-    else app.appendChild(feedPage());
+    var p = R.path();
+    if (p === '/write') app.appendChild(writePage(me));
+    else if (p.indexOf('/post/') === 0) app.appendChild(await detailPage(p.slice(6), me));
+    else if (p === '/my') app.appendChild(await myPage(me));
+    else if (p === '/profile') app.appendChild(await profilePage(me));
+    else app.appendChild(await feedPage(me));
   }
 };
 window.addEventListener('hashchange', function() { R.render(); });
-
-// ── DEV: 로그인 스킵 ──────────────────────────────────────────────────
-var DEV_SKIP_AUTH = true;
-if (DEV_SKIP_AUTH && !S.me()) {
-  var devNick = S.nextNick();
-  S.setMe({ uid: 'dev_001', nick: devNick, pseudo: false });
-}
+SB.auth.onAuthStateChange(function(event) {
+  if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') R.render();
+});
 
 // ── 공통: 탭바 ──────────────────────────────────────────────────────
 function tabBar(active) {
@@ -632,6 +607,25 @@ function tabBar(active) {
 
 // ── 인증 페이지 ──────────────────────────────────────────────────────
 function authPage() {
+  var wrap = document.createElement('div');
+  wrap.className = 'screen';
+  wrap.innerHTML = [
+    '<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px;">',
+    '<div style="font-size:20px;letter-spacing:.35em;color:var(--text);margin-bottom:4px;">g i t m a r k</div>',
+    '<div style="font-size:11px;color:var(--text-muted);margin-bottom:20px;">왔다 갔다는 흔적을 남기는 곳</div>',
+    '<button id="google-btn" style="display:flex;align-items:center;gap:10px;padding:11px 22px;border:0.5px solid var(--border);border-radius:6px;background:var(--bg-surface);color:var(--text);font-size:13px;cursor:pointer;transition:border-color .15s;" onmouseover="this.style.borderColor=\'var(--text-muted)\'" onmouseout="this.style.borderColor=\'var(--border)\'">',
+    '<svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>',
+    'Google로 계속하기',
+    '</button>',
+    '</div>'
+  ].join('');
+  wrap.querySelector('#google-btn').onclick = function() {
+    SB.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } });
+  };
+  return wrap;
+}
+
+function _authPage_old() {
   var mode = 'login';
   var wrap = document.createElement('div');
   wrap.className = 'screen';
@@ -719,8 +713,7 @@ function authPage() {
 }
 
 // ── 피드 페이지 ──────────────────────────────────────────────────────
-function feedPage() {
-  var me = S.me();
+async function feedPage(me) {
   var wrap = document.createElement('div');
   wrap.className = 'screen';
   wrap.style.cssText = 'min-height:100vh;padding-bottom:64px;';
@@ -735,7 +728,14 @@ function feedPage() {
   hdr.appendChild(writeBtn);
   wrap.appendChild(hdr);
 
-  var posts = S.posts();
+  var now60 = Date.now() - 60000;
+  var [postsRes, likesRes] = await Promise.all([
+    SB.from('posts').select('*').or('del.is.null,del.gt.'+now60).order('at', { ascending: false }).limit(100),
+    SB.from('likes').select('post_id').eq('uid', me.uid)
+  ]);
+  var posts = postsRes.data || [];
+  var likedSet = new Set((likesRes.data || []).map(function(l){ return l.post_id; }));
+
   if (posts.length === 0) {
     var empty = document.createElement('div');
     empty.style.cssText = 'text-align:center;padding:80px 20px;color:var(--text-dim);';
@@ -748,10 +748,8 @@ function feedPage() {
     wrap.appendChild(colHdr);
     var indexWrap = document.createElement('div');
     indexWrap.className = 'feed-branch-wrap';
-    var now60 = Date.now();
-    var visible = posts.filter(function(p){ return !(p.del && now60 - p.del >= 60000); });
-    visible.forEach(function(post) {
-      indexWrap.appendChild(makeCard(post, me));
+    posts.forEach(function(post) {
+      indexWrap.appendChild(makeCard(post, me, null, likedSet));
     });
     wrap.appendChild(indexWrap);
   }
@@ -770,7 +768,7 @@ function postOpacity(post) {
   return 0.46;
 }
 
-function makeCard(post, me, idx) {
+function makeCard(post, me, idx, likedSet) {
   var branchMode = (idx == null);
   var url = branchMode ? extractUrl(post.txt) : null;
   var isInfo = !!url;
@@ -817,7 +815,7 @@ function makeCard(post, me, idx) {
     infoBar = '<a class="info-url-bar" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">'+esc(disp)+'</a>';
   }
 
-  var liked = S.isLiked(post.id, me.uid);
+  var liked = likedSet ? likedSet.has(post.id) : false;
   tile.innerHTML = [
     infoBar,
     '<div class="tile-head">',
@@ -834,20 +832,27 @@ function makeCard(post, me, idx) {
     '<span class="tile-sep">·</span>',
     '<button class="like-btn'+(liked?' liked':'')+'" id="lbtn-'+post.id+'">',
     '<span id="lico-'+post.id+'">'+(liked?'♥':'♡')+'</span>',
-    '<span id="lcnt-'+post.id+'">'+(post.likes||0)+'</span>',
+    '<span id="lcnt-'+post.id+'">'+(post.likes_count||0)+'</span>',
     '</button>',
-    '<span style="display:flex;align-items:center;gap:3px;color:var(--text-dim);font-size:11px;"><i class="ti ti-message" aria-hidden="true" style="font-size:12px;"></i>'+(post.comments||0)+'</span>',
+    '<span style="display:flex;align-items:center;gap:3px;color:var(--text-dim);font-size:11px;"><i class="ti ti-message" aria-hidden="true" style="font-size:12px;"></i>'+(post.comments_count||0)+'</span>',
     me.uid===post.uid ? '<button class="del-btn" id="delbtn-'+post.id+'">삭제</button>' : '',
     '</div>',
     '</div>'
   ].join('');
 
-  tile.querySelector('#lbtn-'+post.id).onclick = function(e) {
+  tile.querySelector('#lbtn-'+post.id).onclick = async function(e) {
     e.stopPropagation();
-    var now = S.toggleLike(post.id, me.uid);
-    this.classList.toggle('liked', now);
-    document.getElementById('lico-'+post.id).textContent = now ? '♥' : '♡';
-    document.getElementById('lcnt-'+post.id).textContent = (S.getPost(post.id)||{}).likes||0;
+    var btn = this;
+    var wasLiked = btn.classList.contains('liked');
+    btn.classList.toggle('liked', !wasLiked);
+    document.getElementById('lico-'+post.id).textContent = !wasLiked ? '♥' : '♡';
+    var cntEl = document.getElementById('lcnt-'+post.id);
+    cntEl.textContent = !wasLiked ? (parseInt(cntEl.textContent)||0)+1 : Math.max(0,(parseInt(cntEl.textContent)||0)-1);
+    var { data: nowLiked } = await SB.rpc('toggle_like', { p_post_id: post.id, p_uid: me.uid });
+    if (typeof nowLiked === 'boolean' && nowLiked !== !wasLiked) {
+      btn.classList.toggle('liked', nowLiked);
+      document.getElementById('lico-'+post.id).textContent = nowLiked ? '♥' : '♡';
+    }
   };
   var moreBtn = tile.querySelector('#more-'+post.id);
   if (moreBtn) {
@@ -870,13 +875,16 @@ function makeCard(post, me, idx) {
   if (me.uid===post.uid) {
     tile.querySelector('#nick-edit-'+post.id).onclick = function(e) {
       e.stopPropagation();
-      R.go('/my');
+      R.go('/profile');
     };
     tile.querySelector('#delbtn-'+post.id).onclick = function(e) {
       e.stopPropagation();
       var pid = post.id;
       gModal('이 흔적을 지울까요?<br><span style="font-size:10px;color:var(--text-dim);">60초 후 완전히 사라집니다</span>', function() {
-        scatterAndDelete(tile, function() { S.deletePost(pid); R.render(); });
+        scatterAndDelete(tile, async function() {
+          await SB.from('posts').update({ del: Date.now() }).eq('id', pid);
+          R.render();
+        });
       }, '삭제');
     };
   }
@@ -889,8 +897,7 @@ function makeCard(post, me, idx) {
 }
 
 // ── 글쓰기 페이지 ────────────────────────────────────────────────────
-function writePage() {
-  var me = S.me();
+function writePage(me) {
   var wrap = document.createElement('div');
   wrap.className = 'screen';
   wrap.style.cssText = 'min-height:100vh;display:flex;flex-direction:column;';
@@ -914,13 +921,15 @@ function writePage() {
   submitBtn.textContent = '남기기';
   submitBtn.disabled = true;
   submitBtn.style.cssText = 'background:var(--bg-surface);border:1px solid var(--border);border-radius:4px;padding:6px 14px;font-size:12px;color:var(--text);cursor:pointer;opacity:.3;';
-  submitBtn.onclick = function() {
+  submitBtn.onclick = async function() {
     var ta = document.getElementById('write-ta');
     if (!ta) return;
     var txt = ta.value.trim();
     if (!txt || txt.length > MAX) return;
+    submitBtn.disabled = true;
+    submitBtn.style.opacity = '.3';
     var now = Date.now();
-    S.addPost({ id: mkId(), uid: me.uid, nick: me.nick, pseudo: me.pseudo, txt: txt, at: now, upd: now, likes: 0, comments: 0, del: null });
+    await SB.from('posts').insert({ id: mkId(), uid: me.uid, nick: me.nick, pseudo: me.pseudo, txt: txt, at: now, upd: now, likes_count: 0, comments_count: 0 });
     R.go('/');
   };
   hdr.appendChild(cancelBtn);
@@ -934,7 +943,6 @@ function writePage() {
   nickBar.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:12px;';
 
   function renderWriteNick(editing) {
-    me = S.me();
     if (editing) {
       nickBar.innerHTML = [
         avatar(me.nick, 24),
@@ -945,11 +953,12 @@ function writePage() {
       ].join('');
       var inp = nickBar.querySelector('#w-nick-inp');
       inp.focus(); inp.select();
-      nickBar.querySelector('#w-nick-save').onclick = function() {
+      nickBar.querySelector('#w-nick-save').onclick = async function() {
         var v = inp.value.trim();
         if (!v) return;
-        S.updateNick(v);
-        me = S.me();
+        var pseudo = isPseudo(v);
+        await SB.rpc('update_nick', { p_uid: me.uid, p_nick: v, p_pseudo: pseudo });
+        me = Object.assign({}, me, { nick: v, pseudo: pseudo });
         renderWriteNick(false);
       };
       nickBar.querySelector('#w-nick-cancel').onclick = function() { renderWriteNick(false); };
@@ -988,17 +997,10 @@ function writePage() {
 }
 
 // ── 상세 페이지 ──────────────────────────────────────────────────────
-function detailPage(pid) {
-  var me = S.me();
-  var post = S.getPost(pid);
+async function detailPage(pid, me) {
   var wrap = document.createElement('div');
   wrap.className = 'screen';
   wrap.style.cssText = 'min-height:100vh;padding-bottom:70px;';
-
-  if (!post) {
-    wrap.innerHTML = '<div style="text-align:center;padding:60px;color:var(--text-dim);">게시물을 찾을 수 없습니다.</div>';
-    return wrap;
-  }
 
   var hdr = document.createElement('div');
   hdr.className = 'sticky-header';
@@ -1009,12 +1011,23 @@ function detailPage(pid) {
   hdr.appendChild(backBtn);
   wrap.appendChild(hdr);
 
+  var [postRes, likeRes, cmtRes] = await Promise.all([
+    SB.from('posts').select('*').eq('id', pid).maybeSingle(),
+    SB.from('likes').select('post_id').eq('post_id', pid).eq('uid', me.uid).maybeSingle(),
+    SB.from('comments').select('*').eq('post_id', pid).order('at')
+  ]);
+  var post = postRes.data;
+  if (!post) {
+    wrap.innerHTML += '<div style="text-align:center;padding:60px;color:var(--text-dim);">게시물을 찾을 수 없습니다.</div>';
+    return wrap;
+  }
+
   var postEl = document.createElement('div');
   postEl.style.cssText = 'padding:16px;border-bottom:1px solid var(--border);';
   if (post.del) {
     postEl.innerHTML = '<div style="color:var(--text-dim);font-size:12px;">╳ 삭제됨 · '+absTime(post.del)+'</div><div style="font-size:11px;color:var(--text-dim);margin-top:4px;">이 흔적은 지워졌습니다</div>';
   } else {
-    var liked = S.isLiked(pid, me.uid);
+    var liked = !!likeRes.data;
     postEl.innerHTML = [
       '<div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:14px;">',
       avatar(post.nick, 42),
@@ -1022,21 +1035,24 @@ function detailPage(pid) {
       '<div style="font-size:11px;color:var(--text-muted);margin-top:3px;">'+relTime(post.upd||post.at)+'</div></div></div>',
       '<div id="d-post-body" style="font-size:14px;color:var(--text-body);line-height:1.7;word-break:break-word;margin-bottom:14px;min-height:1.7em;"></div>',
       '<div style="display:flex;align-items:center;gap:14px;">',
-      '<button class="like-btn" id="d-lbtn" style="color:'+(liked?'#f472b6':'var(--text-muted)')+'"><span id="d-lico">'+(liked?'♥':'♡')+'</span><span style="font-size:12px;" id="d-lcnt">'+(post.likes||0)+'</span></button>',
-      '<span style="font-size:12px;color:var(--text-muted);">💬 <span id="d-cmt-cnt">'+(post.comments||0)+'</span></span>',
+      '<button class="like-btn'+(liked?' liked':'')+'" id="d-lbtn"><span id="d-lico">'+(liked?'♥':'♡')+'</span><span style="font-size:12px;" id="d-lcnt">'+(post.likes_count||0)+'</span></button>',
+      '<span style="font-size:12px;color:var(--text-muted);">💬 <span id="d-cmt-cnt">'+(post.comments_count||0)+'</span></span>',
       me.uid===post.uid ? '<button class="del-btn" id="d-del">삭제</button>' : '',
       '</div>'
     ].join('');
-    postEl.querySelector('#d-lbtn').onclick = function() {
-      var now = S.toggleLike(pid, me.uid);
-      this.style.color = now?'#f472b6':'var(--text-muted)';
-      document.getElementById('d-lico').textContent = now?'♥':'♡';
-      document.getElementById('d-lcnt').textContent = (S.getPost(pid)||{}).likes||0;
+    postEl.querySelector('#d-lbtn').onclick = async function() {
+      var wasLiked = this.classList.contains('liked');
+      this.classList.toggle('liked', !wasLiked);
+      document.getElementById('d-lico').textContent = !wasLiked?'♥':'♡';
+      var cntEl = document.getElementById('d-lcnt');
+      cntEl.textContent = !wasLiked?(parseInt(cntEl.textContent)||0)+1:Math.max(0,(parseInt(cntEl.textContent)||0)-1);
+      await SB.rpc('toggle_like', { p_post_id: pid, p_uid: me.uid });
     };
     if (me.uid===post.uid) {
       postEl.querySelector('#d-del').onclick = function() {
-        gModal('이 흔적을 지울까요?<br><span style="font-size:10px;color:var(--text-dim);">60초 후 완전히 사라집니다</span>', function() {
-          S.deletePost(pid); R.go('/');
+        gModal('이 흔적을 지울까요?<br><span style="font-size:10px;color:var(--text-dim);">60초 후 완전히 사라집니다</span>', async function() {
+          await SB.from('posts').update({ del: Date.now() }).eq('id', pid);
+          R.go('/');
         }, '삭제');
       };
     }
@@ -1050,12 +1066,13 @@ function detailPage(pid) {
   wrap.appendChild(cList);
 
   var replyTo = null;
+  var allComments = cmtRes.data || [];
+
   function renderComments() {
-    var all = S.comments(pid);
-    var top = all.filter(function(c){ return !c.parent; });
+    var top = allComments.filter(function(c){ return !c.parent_id; });
     cList.innerHTML = '';
     top.forEach(function(c) {
-      cList.appendChild(mkComment(c, all.filter(function(r){ return r.parent===c.id; })));
+      cList.appendChild(mkComment(c, allComments.filter(function(r){ return r.parent_id===c.id; })));
     });
   }
 
@@ -1081,9 +1098,13 @@ function detailPage(pid) {
       el.querySelector('#rep-'+c.id).onclick = function() { replyTo = c.id; var inp=document.getElementById('d-inp'); if(inp){inp.placeholder='@'+c.nick+'에 답글'; inp.focus();} };
       if (isOwner) {
         el.querySelector('#dc-'+c.id).onclick = (function(cid) { return function() {
-          gModal('이 댓글을 삭제할까요?', function() {
-            S.delComment(pid, cid); S.incComments(pid,-1); renderComments();
-            var cnt=document.getElementById('d-cmt-cnt'); if(cnt)cnt.textContent=(S.getPost(pid)||{}).comments||0;
+          gModal('이 댓글을 삭제할까요?', async function() {
+            await SB.from('comments').update({ del: Date.now() }).eq('id', cid);
+            allComments = allComments.map(function(cm){ return cm.id===cid ? Object.assign({},cm,{del:Date.now()}) : cm; });
+            await SB.from('posts').update({ comments_count: Math.max(0,(post.comments_count||0)-1) }).eq('id', pid);
+            post.comments_count = Math.max(0,(post.comments_count||0)-1);
+            var cnt=document.getElementById('d-cmt-cnt'); if(cnt)cnt.textContent=post.comments_count;
+            renderComments();
           }, '삭제');
         }; })(c.id);
       }
@@ -1112,9 +1133,13 @@ function detailPage(pid) {
     ].join('');
     if (isOwner) {
       el.querySelector('#dr-'+r.id).onclick = (function(rid) { return function() {
-        gModal('이 댓글을 삭제할까요?', function() {
-          S.delComment(pid, rid); S.incComments(pid,-1); renderComments();
-          var cnt=document.getElementById('d-cmt-cnt'); if(cnt)cnt.textContent=(S.getPost(pid)||{}).comments||0;
+        gModal('이 댓글을 삭제할까요?', async function() {
+          await SB.from('comments').update({ del: Date.now() }).eq('id', rid);
+          allComments = allComments.map(function(cm){ return cm.id===rid ? Object.assign({},cm,{del:Date.now()}) : cm; });
+          await SB.from('posts').update({ comments_count: Math.max(0,(post.comments_count||0)-1) }).eq('id', pid);
+          post.comments_count = Math.max(0,(post.comments_count||0)-1);
+          var cnt=document.getElementById('d-cmt-cnt'); if(cnt)cnt.textContent=post.comments_count;
+          renderComments();
         }, '삭제');
       }; })(r.id);
     }
@@ -1141,11 +1166,16 @@ function detailPage(pid) {
     var txt = inp.value.trim();
     if (!txt) return;
     _submitting = true;
+    var parentId = replyTo;
     inp.value = ''; inp.placeholder = '흔적을 남기세요'; replyTo = null;
-    S.addComment(pid, { id:mkId(), pid:pid, parent:replyTo, uid:me.uid, nick:me.nick, pseudo:me.pseudo, txt:txt, at:Date.now(), del:null });
-    S.incComments(pid, 1);
+    var newComment = { id: mkId(), post_id: pid, parent_id: parentId, uid: me.uid, nick: me.nick, pseudo: me.pseudo, txt: txt, at: Date.now(), del: null };
+    SB.from('comments').insert(newComment).then(function() {
+      SB.from('posts').update({ comments_count: (post.comments_count||0)+1 }).eq('id', pid);
+      post.comments_count = (post.comments_count||0)+1;
+      var cnt=document.getElementById('d-cmt-cnt'); if(cnt)cnt.textContent=post.comments_count;
+    });
+    allComments.push(newComment);
     renderComments();
-    var cnt=document.getElementById('d-cmt-cnt'); if(cnt)cnt.textContent=(S.getPost(pid)||{}).comments||0;
     setTimeout(function(){ _submitting = false; }, 300);
   }
   inp.onkeydown = function(e){ if(e.key==='Enter'){ e.preventDefault(); submit(); } };
@@ -1159,8 +1189,7 @@ function detailPage(pid) {
 }
 
 // ── 마이페이지 ───────────────────────────────────────────────────────
-function profilePage() {
-  var me = S.me();
+async function profilePage(me) {
   var wrap = document.createElement('div');
   wrap.className = 'screen';
   wrap.style.cssText = 'min-height:100vh;padding-bottom:64px;';
@@ -1171,7 +1200,7 @@ function profilePage() {
   var logoutBtn = document.createElement('button');
   logoutBtn.className = 'btn-ghost';
   logoutBtn.textContent = '로그아웃';
-  logoutBtn.onclick = function() { S.setMe(null); R.go('/auth'); };
+  logoutBtn.onclick = async function() { await SB.auth.signOut(); R.render(); };
   hdr.appendChild(logoutBtn);
   wrap.appendChild(hdr);
 
@@ -1179,7 +1208,6 @@ function profilePage() {
   prof.style.cssText = 'display:flex;flex-direction:column;align-items:center;padding:32px 16px 24px;border-bottom:0.5px solid var(--border);gap:12px;';
 
   function renderProf(editing) {
-    me = S.me();
     if (editing) {
       prof.innerHTML = [
         '<div id="prof-av-wrap">'+avatar(me.nick, 64)+'</div>',
@@ -1201,16 +1229,16 @@ function profilePage() {
         avWrap.innerHTML = '<div class="avatar" style="width:64px;height:64px;background:'+c.avBg+';color:'+c.avText+';font-size:24px;">'+getInitial(v)+'</div>';
         preview.innerHTML = nickHtml(v, isPseudo(v));
       };
-      prof.querySelector('#prof-save').onclick = function() {
+      prof.querySelector('#prof-save').onclick = async function() {
         var newNick = inp.value.trim();
         if (!newNick) { inp.focus(); return; }
-        S.updateNick(newNick);
-        me = S.me();
+        var pseudo = isPseudo(newNick);
+        await SB.rpc('update_nick', { p_uid: me.uid, p_nick: newNick, p_pseudo: pseudo });
+        me = Object.assign({}, me, { nick: newNick, pseudo: pseudo });
         renderProf(false);
       };
       prof.querySelector('#prof-cancel').onclick = function() { renderProf(false); };
     } else {
-      var postCount = S.posts().filter(function(p){ return p.uid===me.uid && !p.del; }).length;
       prof.innerHTML = [
         avatar(me.nick, 64),
         '<div style="text-align:center;">',
@@ -1218,7 +1246,6 @@ function profilePage() {
         '<span style="font-size:15px;font-weight:500;">'+nickHtml(me.nick, me.pseudo)+'</span>',
         '<button id="prof-edit-btn" class="edit-pill">✏ 수정</button>',
         '</div>',
-        '<div style="font-size:11px;color:var(--text-dim);">흔적 '+postCount+'개</div>',
         '</div>'
       ].join('');
       prof.querySelector('#prof-edit-btn').onclick = function() { renderProf(true); };
@@ -1230,9 +1257,7 @@ function profilePage() {
   return wrap;
 }
 
-function myPage() {
-  var me = S.me();
-  var posts = S.posts().filter(function(p){ return p.uid===me.uid; });
+async function myPage(me) {
   var wrap = document.createElement('div');
   wrap.className = 'screen';
   wrap.style.cssText = 'min-height:100vh;padding-bottom:64px;';
@@ -1241,6 +1266,14 @@ function myPage() {
   hdr.className = 'sticky-header';
   hdr.innerHTML = '<span style="font-size:13px;letter-spacing:.05em;">내 흔적</span>';
   wrap.appendChild(hdr);
+
+  var now60m = Date.now() - 60000;
+  var [postsRes, likesRes] = await Promise.all([
+    SB.from('posts').select('*').eq('uid', me.uid).or('del.is.null,del.gt.'+now60m).order('at', { ascending: false }),
+    SB.from('likes').select('post_id').eq('uid', me.uid)
+  ]);
+  var posts = postsRes.data || [];
+  var likedSet = new Set((likesRes.data || []).map(function(l){ return l.post_id; }));
 
   var tabLabel = document.createElement('div');
   tabLabel.style.cssText = 'padding:10px 16px;border-bottom:0.5px solid var(--border);font-size:11px;color:var(--text-muted);';
@@ -1255,11 +1288,9 @@ function myPage() {
   } else {
     var indexWrapM = document.createElement('div');
     indexWrapM.className = 'feed-index-wrap';
-    var now60m = Date.now();
-    var visibleM = posts.filter(function(p){ return !(p.del && now60m - p.del >= 60000); });
-    var totalM = visibleM.length;
-    visibleM.forEach(function(p, i) {
-      indexWrapM.appendChild(makeCard(p, me, totalM - i));
+    var totalM = posts.length;
+    posts.forEach(function(p, i) {
+      indexWrapM.appendChild(makeCard(p, me, totalM - i, likedSet));
     });
     wrap.appendChild(indexWrapM);
   }
@@ -1271,6 +1302,7 @@ function myPage() {
 // ── 시작 ────────────────────────────────────────────────────────────
 applyTheme(S.theme());
 R.render();
+
 </script>
 </body>
 </html>
