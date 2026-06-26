@@ -261,6 +261,60 @@
       line-height: 1;
     }
     #theme-toggle:hover { background: var(--bg-elevated); }
+
+    /* ── 분기 타임라인 피드 ──────────────────────────────────── */
+    .feed-branch-header {
+      display: grid; grid-template-columns: 1fr 0.5px 1fr;
+      background: var(--bg-surface); border-bottom: 0.5px solid var(--border);
+      font-size: 9px; color: var(--text-dim);
+      font-family: 'JetBrains Mono', monospace; letter-spacing: .05em;
+      position: sticky; top: 45px; z-index: 9;
+    }
+    .fbh-left  { padding: 5px 12px; text-align: right; }
+    .fbh-sep   { background: var(--border); }
+    .fbh-right { padding: 5px 12px; }
+    .feed-branch-wrap {
+      position: relative; padding: 14px 0 0;
+    }
+    .feed-branch-wrap::before {
+      content: ''; position: absolute; left: 50%; top: 0; bottom: 0;
+      width: 0.5px; background: var(--border-sub);
+      transform: translateX(-50%); pointer-events: none;
+    }
+    .branch-row {
+      display: flex; margin-bottom: 10px; position: relative;
+    }
+    .branch-row::before {
+      content: ''; position: absolute; left: 50%; top: 15px;
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--bg); border: 0.5px solid var(--border-sub);
+      transform: translateX(-50%); z-index: 2;
+    }
+    .branch-row.casual {
+      justify-content: flex-start;
+      padding-left: 14px; padding-right: calc(50% + 10px);
+    }
+    .branch-row.info {
+      justify-content: flex-end;
+      padding-right: 14px; padding-left: calc(50% + 10px);
+    }
+    .branch-tile-wrap { flex: 1; min-width: 0; }
+    .tile.info-tile { border-color: var(--border-sub); }
+    .info-url-bar {
+      padding: 5px 12px; font-size: 9px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-dim); background: var(--bg-surface);
+      border-bottom: 0.5px solid var(--border);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+
+    /* ── UX 인터랙션 효과 ──────────────────────────────────── */
+    .ink-overlay {
+      position: fixed; inset: 0; z-index: 999; pointer-events: none;
+      background: var(--bg-surface);
+      transition: clip-path .42s cubic-bezier(.4,0,.2,1);
+    }
+    .tile { transition: transform .12s, opacity .9s ease; }
   </style>
 </head>
 <body>
@@ -321,6 +375,11 @@ function avatar(nick, size) {
 
 function nickHtml(nick, pseudo) {
   return esc(nick) + (pseudo ? ' <span style="color:#ca8a04;font-size:10px;">(가명)</span>' : '');
+}
+
+function extractUrl(txt) {
+  var m = (txt || '').match(/https?:\/\/[^\s]+/);
+  return m ? m[0] : null;
 }
 
 // ── 스토어 ──────────────────────────────────────────────────────────
@@ -405,11 +464,111 @@ function gModal(msg, onConfirm, confirmLabel) {
   document.body.appendChild(ov);
 }
 
+// ── 인터랙션 효과 ────────────────────────────────────────────────────
+
+// A: 잉크 방울 전환 — 탭한 지점에서 잉크가 번지며 화면 전환
+function inkTransition(x, y, cb) {
+  // prefers-reduced-motion 또는 클립패스 미지원 시 즉시 이동
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    cb(); return;
+  }
+  var ov = document.createElement('div');
+  ov.className = 'ink-overlay';
+  ov.style.clipPath = 'circle(0% at '+x+'px '+y+'px)';
+  document.body.appendChild(ov);
+  ov.getBoundingClientRect(); // force reflow
+  ov.style.clipPath = 'circle(200% at '+x+'px '+y+'px)';
+  var fired = false;
+  function finish() {
+    if (fired) return; fired = true;
+    cb();
+    setTimeout(function() {
+      ov.style.transition = 'opacity .25s ease';
+      ov.style.opacity = '0';
+      setTimeout(function(){ if(ov.parentNode) document.body.removeChild(ov); }, 280);
+    }, 30);
+  }
+  ov.addEventListener('transitionend', finish, {once:true});
+  setTimeout(finish, 600); // 폴백: transitionend 미발화 시 강제 진행
+}
+
+// B: 글자 해체 삭제 — 각 글자가 사방으로 흩어지며 소멸
+function scatterAndDelete(tile, onDone) {
+  var txtEl = tile.querySelector('.tile-txt');
+  if (!txtEl) { onDone(); return; }
+  var txt = txtEl.textContent || '';
+  txtEl.style.overflow = 'visible';
+  txtEl.style.webkitLineClamp = 'unset';
+  txtEl.style.display = 'block';
+  var spans = txt.split('').map(function(ch) {
+    var s = document.createElement('span');
+    s.textContent = ch;
+    s.style.display = 'inline-block';
+    s.style.transition = 'transform .65s ease, opacity .65s ease';
+    return s;
+  });
+  txtEl.innerHTML = '';
+  spans.forEach(function(s){ txtEl.appendChild(s); });
+  requestAnimationFrame(function() {
+    spans.forEach(function(s) {
+      var dx = (Math.random()-0.5)*300;
+      var dy = (Math.random()-0.5)*200;
+      var rot = (Math.random()-0.5)*640;
+      s.style.transform = 'translate('+dx+'px,'+dy+'px) rotate('+rot+'deg)';
+      s.style.opacity = '0';
+    });
+    setTimeout(onDone, 750);
+  });
+}
+
+// C: 실시간 opacity 감쇠 — rAF 루프로 시간에 따라 카드가 서서히 투명해짐
+var _opRafId = null;
+function liveOpacity(at) {
+  var h = (Date.now() - at) / 3600000;
+  if (h < 1)  return 1;
+  if (h < 6)  return 0.88;
+  if (h < 24) return 0.72;
+  if (h < 72) return 0.58;
+  return 0.46;
+}
+function startOpacityLoop() {
+  if (_opRafId) return;
+  function loop() {
+    document.querySelectorAll('.tile[data-at]').forEach(function(el) {
+      el.style.opacity = liveOpacity(+el.dataset.at);
+    });
+    _opRafId = requestAnimationFrame(loop);
+  }
+  _opRafId = requestAnimationFrame(loop);
+}
+function stopOpacityLoop() {
+  if (_opRafId) { cancelAnimationFrame(_opRafId); _opRafId = null; }
+}
+
+// D: 타이핑 리듬 출현 — 자연스러운 타이핑 패턴으로 글자가 한 자씩 등장
+function typewriterReveal(el, txt) {
+  var i = 0;
+  el.textContent = '';
+  function tick() {
+    if (i >= txt.length) return;
+    var ch = txt[i++];
+    if (ch === '\n') el.appendChild(document.createElement('br'));
+    else el.appendChild(document.createTextNode(ch));
+    var delay;
+    if ('.,。！？\n'.indexOf(ch) >= 0) delay = 260 + Math.random()*200;
+    else if (Math.random() < 0.06) delay = 130 + Math.random()*90;
+    else delay = 16 + Math.random()*42;
+    setTimeout(tick, delay);
+  }
+  tick();
+}
+
 // ── 라우터 (해시 기반) ───────────────────────────────────────────────
 var R = {
   path: function() { return location.hash.replace(/^#/,'') || '/'; },
   go: function(p) { location.hash = p; },
   render: function() {
+    stopOpacityLoop();
     var p = R.path(), me = S.me();
     var app = document.getElementById('app');
     if (!app) return;
@@ -565,17 +724,21 @@ function feedPage() {
     empty.innerHTML = '<div style="margin-bottom:14px;">아직 아무도 다녀가지 않았어요.</div><button onclick="R.go(\'/write\')" style="font-size:11px;color:var(--text-muted);background:none;border:none;cursor:pointer;">첫 번째 흔적을 남겨보세요 →</button>';
     wrap.appendChild(empty);
   } else {
+    var colHdr = document.createElement('div');
+    colHdr.className = 'feed-branch-header';
+    colHdr.innerHTML = '<div class="fbh-left">casual ←</div><div class="fbh-sep"></div><div class="fbh-right">→ info</div>';
+    wrap.appendChild(colHdr);
     var indexWrap = document.createElement('div');
-    indexWrap.className = 'feed-index-wrap';
+    indexWrap.className = 'feed-branch-wrap';
     var now60 = Date.now();
     var visible = posts.filter(function(p){ return !(p.del && now60 - p.del >= 60000); });
-    var total = visible.length;
-    visible.forEach(function(post, i) {
-      indexWrap.appendChild(makeCard(post, me, total - i));
+    visible.forEach(function(post) {
+      indexWrap.appendChild(makeCard(post, me));
     });
     wrap.appendChild(indexWrap);
   }
   wrap.appendChild(tabBar('/'));
+  requestAnimationFrame(startOpacityLoop);
   return wrap;
 }
 
@@ -590,24 +753,31 @@ function postOpacity(post) {
 }
 
 function makeCard(post, me, idx) {
+  var branchMode = (idx == null);
+  var url = branchMode ? extractUrl(post.txt) : null;
+  var isInfo = !!url;
+
   var row = document.createElement('div');
-  row.className = 'card-row';
-
-  var idxEl = document.createElement('div');
-  idxEl.className = 'card-idx';
-  idxEl.textContent = String(idx != null ? idx : '').padStart(2, '0');
-  row.appendChild(idxEl);
-
   var tileWrap = document.createElement('div');
-  tileWrap.className = 'card-tile-wrap';
+
+  if (branchMode) {
+    row.className = 'branch-row ' + (isInfo ? 'info' : 'casual');
+    tileWrap.className = 'branch-tile-wrap';
+  } else {
+    row.className = 'card-row';
+    var idxEl = document.createElement('div');
+    idxEl.className = 'card-idx';
+    idxEl.textContent = String(idx).padStart(2, '0');
+    row.appendChild(idxEl);
+    tileWrap.className = 'card-tile-wrap';
+  }
 
   var c = nick2color(post.nick);
-  var op = postOpacity(post);
   var tile = document.createElement('div');
-  tile.className = 'tile';
-  tile.style.cssText = 'opacity:' + op + ';';
+  tile.className = 'tile' + (isInfo ? ' info-tile' : '');
 
   if (post.del) {
+    tile.style.opacity = postOpacity(post);
     tile.innerHTML = [
       '<div class="tile-del-head"><span>╳</span><span class="tile-del-sub">삭제됨 · '+absTime(post.del)+'</span></div>',
       '<div class="tile-del-rows">이 흔적은 지워졌습니다</div>'
@@ -619,27 +789,31 @@ function makeCard(post, me, idx) {
     return row;
   }
 
+  tile.dataset.at = String(post.upd || post.at);
+  tile.style.opacity = liveOpacity(post.upd || post.at);
+
+  var infoBar = '';
+  if (isInfo) {
+    var disp = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    if (disp.length > 38) disp = disp.slice(0, 38) + '…';
+    infoBar = '<div class="info-url-bar">'+esc(disp)+'</div>';
+  }
+
   var liked = S.isLiked(post.id, me.uid);
   tile.innerHTML = [
-    /* 상단 헤더: 내용(3줄 클램프) + 시간 */
+    infoBar,
     '<div class="tile-head">',
     '<div class="tile-txt body-font" id="txt-'+post.id+'" style="-webkit-line-clamp:3;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden;">'+esc(post.txt)+'</div>',
     '<div class="tile-since">'+relTime(post.upd||post.at)+'</div>',
     '</div>',
     post.txt.length > 80 ? '<button id="more-'+post.id+'" style="display:block;width:100%;text-align:left;padding:2px 14px 8px;font-size:10px;color:var(--text-dim);background:none;border:none;cursor:pointer;font-family:\'JetBrains Mono\',monospace;">더 보기 →</button>' : '',
-
-    /* 하단 메타 행 */
     '<div class="tile-rows" style="background:'+c.tint+';">',
-
-    /* 행 1 — 작성자 (내 글이면 편집 아이콘) */
     '<div class="tile-row">',
     '<span class="tile-row-icon">'+avatar(post.nick, 16)+'</span>',
     '<span class="tile-row-val">'+nickHtml(post.nick, post.pseudo)+
       (me.uid===post.uid ? ' <button id="nick-edit-'+post.id+'" class="edit-pill">✏ 수정</button>' : '')+
     '</span>',
     '</div>',
-
-    /* 행 2 — 좋아요 · 댓글 · 삭제 */
     '<div class="tile-row">',
     '<span class="tile-row-val" style="gap:8px;">',
     '<button class="like-btn'+(liked?' liked':'')+'" id="lbtn-'+post.id+'">',
@@ -650,7 +824,6 @@ function makeCard(post, me, idx) {
     me.uid===post.uid ? '<button class="del-btn" style="margin-left:auto;" id="delbtn-'+post.id+'">삭제</button>' : '',
     '</span>',
     '</div>',
-
     '</div>'
   ].join('');
 
@@ -688,11 +861,13 @@ function makeCard(post, me, idx) {
       e.stopPropagation();
       var pid = post.id;
       gModal('이 흔적을 지울까요?<br><span style="font-size:10px;color:var(--text-dim);">60초 후 완전히 사라집니다</span>', function() {
-        S.deletePost(pid); R.render();
+        scatterAndDelete(tile, function() { S.deletePost(pid); R.render(); });
       }, '삭제');
     };
   }
-  tile.onclick = function() { R.go('/post/'+post.id); };
+  tile.onclick = function(e) {
+    inkTransition(e.clientX, e.clientY, function() { R.go('/post/'+post.id); });
+  };
   tileWrap.appendChild(tile);
   row.appendChild(tileWrap);
   return row;
@@ -830,7 +1005,7 @@ function detailPage(pid) {
       avatar(post.nick, 42),
       '<div><div style="font-size:13px;color:var(--text);">'+nickHtml(post.nick,post.pseudo)+'</div>',
       '<div style="font-size:11px;color:var(--text-muted);margin-top:3px;">'+relTime(post.upd||post.at)+'</div></div></div>',
-      '<div style="font-size:14px;color:var(--text-body);line-height:1.7;word-break:break-word;margin-bottom:14px;">'+esc(post.txt)+'</div>',
+      '<div id="d-post-body" style="font-size:14px;color:var(--text-body);line-height:1.7;word-break:break-word;margin-bottom:14px;min-height:1.7em;"></div>',
       '<div style="display:flex;align-items:center;gap:14px;">',
       '<button class="like-btn" id="d-lbtn" style="color:'+(liked?'#f472b6':'var(--text-muted)')+'"><span id="d-lico">'+(liked?'♥':'♡')+'</span><span style="font-size:12px;" id="d-lcnt">'+(post.likes||0)+'</span></button>',
       '<span style="font-size:12px;color:var(--text-muted);">💬 <span id="d-cmt-cnt">'+(post.comments||0)+'</span></span>',
@@ -852,6 +1027,8 @@ function detailPage(pid) {
     }
   }
   wrap.appendChild(postEl);
+  var bodyEl = postEl.querySelector('#d-post-body');
+  if (bodyEl) typewriterReveal(bodyEl, post.txt);
 
   var cList = document.createElement('div');
   cList.id = 'd-clist';
