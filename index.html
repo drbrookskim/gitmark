@@ -1057,6 +1057,17 @@ async function detailPage(pid, me) {
     return wrap;
   }
 
+  var authorAvatarUrl = post.uid === me.uid ? me.avatar_url : null;
+  if (!authorAvatarUrl) {
+    var { data: authorProf } = await SB.from('profiles').select('avatar_url').eq('id', post.uid).maybeSingle();
+    authorAvatarUrl = authorProf && authorProf.avatar_url ? authorProf.avatar_url : null;
+  }
+  function authorAvatar(size) {
+    return authorAvatarUrl
+      ? '<img src="'+esc(authorAvatarUrl)+'" referrerpolicy="no-referrer" style="width:'+size+'px;height:'+size+'px;border-radius:50%;object-fit:cover;flex-shrink:0;">'
+      : avatar(post.nick, size);
+  }
+
   var postEl = document.createElement('div');
   postEl.style.cssText = 'padding:16px;border-bottom:1px solid var(--border);';
   if (post.del) {
@@ -1065,7 +1076,7 @@ async function detailPage(pid, me) {
     var liked = !!likeRes.data;
     postEl.innerHTML = [
       '<div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:14px;">',
-      avatar(post.nick, 42),
+      authorAvatar(42),
       '<div><div style="font-size:13px;color:var(--text);">'+nickHtml(post.nick,post.pseudo)+'</div>',
       '<div style="font-size:11px;color:var(--text-muted);margin-top:3px;">'+relTime(post.upd||post.at)+'</div></div></div>',
       '<div id="d-post-body" style="font-size:14px;color:var(--text-body);line-height:1.7;word-break:break-word;margin-bottom:14px;min-height:1.7em;"></div>',
