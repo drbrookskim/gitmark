@@ -412,11 +412,18 @@ var S = {
 
 // ── 첫 로그인 프로필 생성 ────────────────────────────────────────────
 async function getOrCreateProfile(user) {
-  var { data } = await SB.from('profiles').select('*').eq('id', user.id).maybeSingle();
-  if (data) return data;
   var meta = user.user_metadata || {};
+  var avatarUrl = meta.avatar_url || meta.picture || null;
+  var { data } = await SB.from('profiles').select('*').eq('id', user.id).maybeSingle();
+  if (data) {
+    if (avatarUrl && data.avatar_url !== avatarUrl) {
+      await SB.from('profiles').update({ avatar_url: avatarUrl }).eq('id', user.id);
+      data.avatar_url = avatarUrl;
+    }
+    return data;
+  }
   var nick = meta.full_name || meta.name || ('객' + Math.floor(Math.random() * 9000 + 1000));
-  var profile = { id: user.id, nick: nick, pseudo: false };
+  var profile = { id: user.id, nick: nick, pseudo: false, avatar_url: avatarUrl };
   await SB.from('profiles').insert(profile);
   return profile;
 }
@@ -750,6 +757,13 @@ async function feedPage(me) {
   ]);
   var posts = postsRes.data || [];
   var likedSet = new Set((likesRes.data || []).map(function(l){ return l.post_id; }));
+  var uids = [...new Set(posts.map(function(p){ return p.uid; }))];
+  var avatarMap = {};
+  if (uids.length) {
+    var { data: profs } = await SB.from('profiles').select('id,avatar_url').in('id', uids);
+    (profs || []).forEach(function(p){ if (p.avatar_url) avatarMap[p.id] = p.avatar_url; });
+  }
+  avatarMap[me.uid] = me.avatar_url || avatarMap[me.uid];
 
   if (posts.length === 0) {
     var empty = document.createElement('div');
@@ -764,7 +778,7 @@ async function feedPage(me) {
     var indexWrap = document.createElement('div');
     indexWrap.className = 'feed-branch-wrap';
     posts.forEach(function(post) {
-      indexWrap.appendChild(makeCard(post, me, null, likedSet));
+      indexWrap.appendChild(makeCard(post, me, null, likedSet, avatarMap));
     });
     wrap.appendChild(indexWrap);
   }
@@ -783,7 +797,7 @@ function postOpacity(post) {
   return 0.46;
 }
 
-function makeCard(post, me, idx, likedSet) {
+function makeCard(post, me, idx, likedSet, avatarMap) {
   var branchMode = (idx == null);
   var url = branchMode ? extractUrl(post.txt) : null;
   var isInfo = !!url;
@@ -840,7 +854,7 @@ function makeCard(post, me, idx, likedSet) {
     post.txt.length > 80 ? '<button id="more-'+post.id+'" style="display:block;width:100%;text-align:left;padding:2px 14px 8px;font-size:10px;color:var(--text-dim);background:none;border:none;cursor:pointer;font-family:\'JetBrains Mono\',monospace;">더 보기 →</button>' : '',
     '<div class="tile-rows" style="background:'+c.tint+';">',
     '<div class="tile-row">',
-    '<span class="tile-row-icon">'+avatar(post.nick, 16)+'</span>',
+    '<span class="tile-row-icon">'+(avatarMap && avatarMap[post.uid] ? '<img src="'+esc(avatarMap[post.uid])+'" referrerpolicy="no-referrer" style="width:16px;height:16px;border-radius:50%;object-fit:cover;vertical-align:middle;">' : avatar(post.nick, 16))+'</span>',
     '<span class="tile-row-val">'+nickHtml(post.nick, post.pseudo)+
       (me.uid===post.uid ? ' <button id="nick-edit-'+post.id+'" class="edit-pill">✏</button>' : '')+
     '</span>',
@@ -1326,8 +1340,9 @@ async function myPage(me) {
     var indexWrapM = document.createElement('div');
     indexWrapM.className = 'feed-index-wrap';
     var totalM = posts.length;
+    var myAvatarMap = {}; myAvatarMap[me.uid] = me.avatar_url || null;
     posts.forEach(function(p, i) {
-      indexWrapM.appendChild(makeCard(p, me, totalM - i, likedSet));
+      indexWrapM.appendChild(makeCard(p, me, totalM - i, likedSet, myAvatarMap));
     });
     wrap.appendChild(indexWrapM);
   }
