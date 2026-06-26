@@ -1137,6 +1137,21 @@ async function detailPage(pid, me) {
   var replyTo = null;
   var allComments = cmtRes.data || [];
 
+  // 댓글 작성자 프로필 사진 맵
+  var cmtAvatarMap = {};
+  cmtAvatarMap[me.uid] = me.avatar_url || null;
+  var cmtUids = [...new Set(allComments.map(function(c){ return c.uid; }).filter(function(uid){ return uid !== me.uid; }))];
+  if (cmtUids.length) {
+    var { data: cmtProfs } = await SB.from('profiles').select('id,avatar_url').in('id', cmtUids);
+    (cmtProfs || []).forEach(function(p){ if (p.avatar_url) cmtAvatarMap[p.id] = p.avatar_url; });
+  }
+
+  function cmtAvatar(uid, nick, size) {
+    return cmtAvatarMap[uid]
+      ? '<img src="'+esc(cmtAvatarMap[uid])+'" referrerpolicy="no-referrer" style="width:'+size+'px;height:'+size+'px;border-radius:50%;object-fit:cover;flex-shrink:0;">'
+      : avatar(nick, size);
+  }
+
   function appendCommentEl(c) {
     var replies = allComments.filter(function(r){ return r.parent_id===c.id; });
     cList.appendChild(c.parent_id ? mkReply(c) : mkComment(c, replies));
@@ -1159,7 +1174,7 @@ async function detailPage(pid, me) {
       el.innerHTML = [
         '<div style="padding:10px 16px;border-bottom:1px solid var(--border-sub);">',
         '<div style="display:flex;gap:8px;">',
-        avatar(c.nick, 28),
+        cmtAvatar(c.uid, c.nick, 28),
         '<div style="flex:1;"><div style="display:flex;align-items:baseline;gap:6px;margin-bottom:4px;">',
         '<span style="font-size:12px;color:var(--text);">'+nickHtml(c.nick,c.pseudo)+'</span>',
         '<span style="font-size:10px;color:var(--text-dim);">· '+relTime(c.at)+'</span></div>',
@@ -1197,7 +1212,7 @@ async function detailPage(pid, me) {
     el.innerHTML = [
       '<div style="padding:8px 16px 8px 52px;border-bottom:1px solid var(--border-sub);">',
       '<div style="display:flex;gap:8px;">',
-      avatar(r.nick, 24),
+      cmtAvatar(r.uid, r.nick, 24),
       '<div style="flex:1;"><div style="display:flex;align-items:baseline;gap:6px;margin-bottom:3px;">',
       '<span style="font-size:11px;color:var(--text);">'+nickHtml(r.nick,r.pseudo)+'</span>',
       '<span style="font-size:10px;color:var(--text-dim);">· '+relTime(r.at)+'</span></div>',
