@@ -855,9 +855,7 @@ function makeCard(post, me, idx, likedSet, avatarMap) {
     '<div class="tile-rows" style="background:'+c.tint+';">',
     '<div class="tile-row">',
     '<span class="tile-row-icon">'+(avatarMap && avatarMap[post.uid] ? '<img src="'+esc(avatarMap[post.uid])+'" referrerpolicy="no-referrer" style="width:16px;height:16px;border-radius:50%;object-fit:cover;vertical-align:middle;">' : avatar(post.nick, 16))+'</span>',
-    '<span class="tile-row-val">'+nickHtml(post.nick, post.pseudo)+
-      (me.uid===post.uid ? ' <button id="nick-edit-'+post.id+'" class="edit-pill"><i class="ti ti-pencil" style="font-size:11px;"></i></button>' : '')+
-    '</span>',
+    '<span class="tile-row-val">'+nickHtml(post.nick, post.pseudo)+'</span>',
     '<span class="tile-sep">·</span>',
     '<button class="like-btn'+(liked?' liked':'')+'" id="lbtn-'+post.id+'">',
     '<span id="lico-'+post.id+'">'+(liked?'♥':'♡')+'</span>',
@@ -902,10 +900,6 @@ function makeCard(post, me, idx, likedSet, avatarMap) {
     };
   }
   if (me.uid===post.uid) {
-    tile.querySelector('#nick-edit-'+post.id).onclick = function(e) {
-      e.stopPropagation();
-      R.go('/profile');
-    };
     tile.querySelector('#delbtn-'+post.id).onclick = function(e) {
       e.stopPropagation();
       var pid = post.id;
