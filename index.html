@@ -301,12 +301,14 @@
     .branch-tile-wrap { flex: 1; min-width: 0; }
     .tile.info-tile { border-color: var(--border-sub); }
     .info-url-bar {
-      padding: 5px 12px; font-size: 9px;
+      display: block; padding: 5px 12px; font-size: 9px;
       font-family: 'JetBrains Mono', monospace;
       color: var(--text-dim); background: var(--bg-surface);
       border-bottom: 0.5px solid var(--border);
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      text-decoration: none; cursor: pointer;
     }
+    .info-url-bar:hover { color: var(--text-body); }
 
     /* ── UX 인터랙션 효과 ──────────────────────────────────── */
     .ink-overlay {
@@ -424,6 +426,10 @@ var S = {
     var updated = Object.assign({}, me, { nick: nick, pseudo: pseudo });
     S.setMe(updated);
     S.saveUser(updated);
+    var ps = S.posts().map(function(p) {
+      return p.uid === me.uid ? Object.assign({}, p, { nick: nick, pseudo: pseudo }) : p;
+    });
+    S.setPosts(ps);
   }
 };
 
@@ -796,7 +802,7 @@ function makeCard(post, me, idx) {
   if (isInfo) {
     var disp = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
     if (disp.length > 38) disp = disp.slice(0, 38) + '…';
-    infoBar = '<div class="info-url-bar">'+esc(disp)+'</div>';
+    infoBar = '<a class="info-url-bar" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">'+esc(disp)+'</a>';
   }
 
   var liked = S.isLiked(post.id, me.uid);
