@@ -620,7 +620,7 @@ function authPage() {
     '</div>'
   ].join('');
   wrap.querySelector('#google-btn').onclick = function() {
-    SB.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } });
+    SB.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: 'https://drbrookskim.github.io/gitmark' } });
   };
   return wrap;
 }
