@@ -414,7 +414,8 @@ var S = {
 async function getOrCreateProfile(user) {
   var { data } = await SB.from('profiles').select('*').eq('id', user.id).maybeSingle();
   if (data) return data;
-  var nick = '객' + Math.floor(Math.random() * 9000 + 1000);
+  var meta = user.user_metadata || {};
+  var nick = meta.full_name || meta.name || ('객' + Math.floor(Math.random() * 9000 + 1000));
   var profile = { id: user.id, nick: nick, pseudo: false };
   await SB.from('profiles').insert(profile);
   return profile;
@@ -570,7 +571,15 @@ var R = {
     if (!session) { app.innerHTML = ''; app.appendChild(authPage()); return; }
 
     var profile = await getOrCreateProfile(session.user);
-    var me = { uid: session.user.id, nick: profile.nick, pseudo: profile.pseudo };
+    var meta = session.user.user_metadata || {};
+    var me = {
+      uid: session.user.id,
+      nick: profile.nick,
+      pseudo: profile.pseudo,
+      avatar_url: meta.avatar_url || meta.picture || null,
+      google_name: meta.full_name || meta.name || null,
+      email: session.user.email || null
+    };
     app.innerHTML = '';
     var p = R.path();
     if (p === '/write') app.appendChild(writePage(me));
@@ -942,10 +951,16 @@ function writePage(me) {
   var nickBar = document.createElement('div');
   nickBar.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:12px;';
 
+  function writeAvatar() {
+    return me.avatar_url
+      ? '<img src="'+esc(me.avatar_url)+'" style="width:24px;height:24px;border-radius:50%;object-fit:cover;flex-shrink:0;" referrerpolicy="no-referrer">'
+      : avatar(me.nick, 24);
+  }
+
   function renderWriteNick(editing) {
     if (editing) {
       nickBar.innerHTML = [
-        avatar(me.nick, 24),
+        writeAvatar(),
         '<input id="w-nick-inp" class="input-field" type="text" value="'+esc(me.nick)+'" maxlength="20"',
         ' style="flex:1;padding:3px 8px;font-size:12px;height:28px;">',
         '<button id="w-nick-save" style="font-size:11px;padding:3px 8px;background:var(--bg-surface);border:0.5px solid var(--border);border-radius:4px;cursor:pointer;color:var(--text);">저장</button>',
@@ -964,7 +979,7 @@ function writePage(me) {
       nickBar.querySelector('#w-nick-cancel').onclick = function() { renderWriteNick(false); };
     } else {
       nickBar.innerHTML = [
-        avatar(me.nick, 24),
+        writeAvatar(),
         '<span style="font-size:12px;">'+nickHtml(me.nick, me.pseudo)+'</span>',
         '<button id="w-nick-edit" class="edit-pill">✏ 수정</button>'
       ].join('');
@@ -1209,8 +1224,11 @@ async function profilePage(me) {
 
   function renderProf(editing) {
     if (editing) {
+      var editAvatar = me.avatar_url
+        ? '<img src="'+esc(me.avatar_url)+'" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:0.5px solid var(--border);" referrerpolicy="no-referrer">'
+        : avatar(me.nick, 64);
       prof.innerHTML = [
-        '<div id="prof-av-wrap">'+avatar(me.nick, 64)+'</div>',
+        '<div id="prof-av-wrap">'+editAvatar+'</div>',
         '<div style="width:100%;max-width:260px;">',
         '<input id="prof-nick-inp" class="input-field" type="text" value="'+esc(me.nick)+'" maxlength="20" placeholder="닉네임 입력" style="text-align:center;margin-bottom:6px;">',
         '<div id="prof-nick-preview" style="text-align:center;font-size:11px;color:var(--text-muted);min-height:16px;margin-bottom:12px;">'+nickHtml(me.nick, me.pseudo)+'</div>',
@@ -1225,8 +1243,10 @@ async function profilePage(me) {
       inp.focus(); inp.select();
       inp.oninput = function() {
         var v = this.value.trim() || me.nick;
-        var c = nick2color(v);
-        avWrap.innerHTML = '<div class="avatar" style="width:64px;height:64px;background:'+c.avBg+';color:'+c.avText+';font-size:24px;">'+getInitial(v)+'</div>';
+        if (!me.avatar_url) {
+          var c = nick2color(v);
+          avWrap.innerHTML = '<div class="avatar" style="width:64px;height:64px;background:'+c.avBg+';color:'+c.avText+';font-size:24px;">'+getInitial(v)+'</div>';
+        }
         preview.innerHTML = nickHtml(v, isPseudo(v));
       };
       prof.querySelector('#prof-save').onclick = async function() {
@@ -1239,13 +1259,24 @@ async function profilePage(me) {
       };
       prof.querySelector('#prof-cancel').onclick = function() { renderProf(false); };
     } else {
+      var gAvatar = me.avatar_url
+        ? '<img src="'+esc(me.avatar_url)+'" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:0.5px solid var(--border);" referrerpolicy="no-referrer">'
+        : avatar(me.nick, 64);
+      var gNameLine = me.google_name
+        ? '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">'+esc(me.google_name)+'</div>'
+        : '';
+      var emailLine = me.email
+        ? '<div style="font-size:10px;color:var(--text-dim);margin-top:2px;">'+esc(me.email)+'</div>'
+        : '';
       prof.innerHTML = [
-        avatar(me.nick, 64),
+        gAvatar,
         '<div style="text-align:center;">',
-        '<div style="display:flex;align-items:center;gap:6px;justify-content:center;margin-bottom:4px;">',
+        '<div style="display:flex;align-items:center;gap:6px;justify-content:center;margin-bottom:2px;">',
         '<span style="font-size:15px;font-weight:500;">'+nickHtml(me.nick, me.pseudo)+'</span>',
         '<button id="prof-edit-btn" class="edit-pill">✏ 수정</button>',
         '</div>',
+        gNameLine,
+        emailLine,
         '</div>'
       ].join('');
       prof.querySelector('#prof-edit-btn').onclick = function() { renderProf(true); };
