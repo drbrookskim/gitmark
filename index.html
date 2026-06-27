@@ -8,36 +8,31 @@
   <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    /* ── gitmark · 녹청 브랜드 테마 ─────────────────────────────── */
+    /* ── 라이트 (기본) ──────────────────────────────────────────── */
     :root {
-      --bg:          #f0fdf8;
-      --bg-surface:  #e0f7ef;
-      --bg-elevated: #c5eddf;
-      --border:      #6ecfaa;
-      --border-sub:  #a7e3cb;
-      --text:        #082017;
-      --text-muted:  #0f7a55;
-      --text-dim:    #5ab894;
-      --text-body:   #0f3325;
-      --text-faint:  #2e9e72;
-      --teal:        #10b981;
-      --teal-dim:    rgba(16,185,129,.12);
-      --brand-grad:  linear-gradient(135deg,#34d399 0%,#f97316 50%,#a855f7 100%);
+      --bg:         #fafaf9;
+      --bg-surface: #f5f5f4;
+      --bg-elevated:#ececea;
+      --border:     #e5e5e4;
+      --border-sub: #ededeb;
+      --text:       #1c1917;
+      --text-muted: #78716c;
+      --text-dim:   #a8a29e;
+      --text-body:  #44403c;
+      --text-faint: #78716c;
     }
+    /* ── 다크 ───────────────────────────────────────────────────── */
     body.dark {
-      --bg:          #061510;
-      --bg-surface:  #0a1f18;
-      --bg-elevated: #0f2e22;
-      --border:      #0f4a30;
-      --border-sub:  #0b3523;
-      --text:        #d1fae5;
-      --text-muted:  #34d399;
-      --text-dim:    #115c3a;
-      --text-body:   #6ee7b7;
-      --text-faint:  #1a7a4a;
-      --teal:        #34d399;
-      --teal-dim:    rgba(52,211,153,.12);
-      --brand-grad:  linear-gradient(135deg,#34d399 0%,#f97316 50%,#a855f7 100%);
+      --bg:         #0d0d0d;
+      --bg-surface: #1a1a1a;
+      --bg-elevated:#111111;
+      --border:     #2a2a2a;
+      --border-sub: #1e1e1e;
+      --text:       #e8e8e8;
+      --text-muted: #555555;
+      --text-dim:   #333333;
+      --text-body:  #cccccc;
+      --text-faint: #aaaaaa;
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -63,7 +58,7 @@
       opacity: .45;
     }
     body::after {
-      content: 'gitmark · SOCIAL TRACES · gitmark · SOCIAL TRACES';
+      content: 'gitmark · 흔적 · gitmark · 흔적 · gitmark · 흔적';
       position: fixed; left: 14px; top: 50%; z-index: 0; pointer-events: none;
       writing-mode: vertical-rl; letter-spacing: .3em;
       font-size: 10px; color: var(--border); transform: translateY(-50%);
@@ -174,7 +169,7 @@
       background: var(--bg-elevated);
       transition: color .15s, border-color .15s, background .15s;
     }
-    .like-btn.liked { color: var(--teal); border-color: var(--teal); background: var(--teal-dim); }
+    .like-btn.liked { color: #f472b6; border-color: #f472b6; background: rgba(244,114,182,.08); }
     .del-btn { background: none; border: none; cursor: pointer; padding: 0; font-size: 11px; color: var(--text-dim); transition: color .15s; }
     .del-btn:hover { color: #f87171; }
     textarea { resize: none; background: transparent; border: none; outline: none; color: var(--text); width: 100%; line-height: 1.7; }
@@ -203,7 +198,7 @@
       cursor: pointer;
       transition: transform .12s, box-shadow .12s;
     }
-    .tile:hover { transform: translateX(2px); box-shadow: 0 0 0 1px var(--teal); }
+    .tile:hover { transform: translateX(2px); }
 
     /* 상단 헤더: 내용 + 시간 */
     .tile-head {
@@ -284,9 +279,8 @@
     }
     .feed-branch-wrap::before {
       content: ''; position: absolute; left: 50%; top: 0; bottom: 0;
-      width: 2px; background: var(--teal);
+      width: 2px; background: var(--border);
       transform: translateX(-50%); pointer-events: none;
-      opacity: .45;
     }
     .branch-row {
       display: flex; margin-bottom: 10px; position: relative;
@@ -294,7 +288,7 @@
     .branch-row::before {
       content: ''; position: absolute; left: 50%; top: 15px;
       width: 8px; height: 8px; border-radius: 50%;
-      background: var(--teal); opacity: .6;
+      background: var(--border);
       transform: translateX(-50%); z-index: 2;
     }
     .branch-row.casual {
@@ -625,7 +619,7 @@ function authPage() {
     '<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px;">',
     '<div style="font-size:19px;letter-spacing:.3em;color:var(--text);margin-bottom:3px;font-weight:500;">g i t m a r k</div>',
     '<div style="font-size:9px;letter-spacing:.25em;color:var(--text-muted);margin-bottom:20px;">SOCIAL TRACES</div>',
-    '<button id="google-btn" style="display:flex;align-items:center;gap:10px;padding:11px 22px;border:0.5px solid var(--border);border-radius:6px;background:var(--bg-surface);color:var(--text);font-size:13px;cursor:pointer;transition:border-color .15s;" onmouseover="this.style.borderColor=\'var(--teal)\'" onmouseout="this.style.borderColor=\'var(--border)\'">',
+    '<button id="google-btn" style="display:flex;align-items:center;gap:10px;padding:11px 22px;border:0.5px solid var(--border);border-radius:6px;background:var(--bg-surface);color:var(--text);font-size:13px;cursor:pointer;transition:border-color .15s;" onmouseover="this.style.borderColor=\'var(--text-muted)\'" onmouseout="this.style.borderColor=\'var(--border)\'">',
     '<svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>',
     'Google로 계속하기',
     '</button>',
@@ -750,7 +744,7 @@ async function feedPage(me) {
   var uids = [...new Set(posts.map(function(p){ return p.uid; }))];
   var avatarMap = {};
   if (uids.length) {
-    var { data: profs } = await SB.from('public_profiles').select('id,avatar_url').in('id', uids);
+    var { data: profs } = await SB.rpc('get_public_profiles', { user_ids: uids });
     (profs || []).forEach(function(p){ if (p.avatar_url) avatarMap[p.id] = p.avatar_url; });
   }
   avatarMap[me.uid] = me.avatar_url || avatarMap[me.uid];
@@ -1030,7 +1024,8 @@ async function detailPage(pid, me) {
 
   var authorAvatarUrl = post.uid === me.uid ? me.avatar_url : null;
   if (!authorAvatarUrl) {
-    var { data: authorProf } = await SB.from('public_profiles').select('avatar_url').eq('id', post.uid).maybeSingle();
+    var { data: authorProfs } = await SB.rpc('get_public_profiles', { user_ids: [post.uid] });
+    var authorProf = authorProfs && authorProfs[0] ? authorProfs[0] : null;
     authorAvatarUrl = authorProf && authorProf.avatar_url ? authorProf.avatar_url : null;
   }
   function authorAvatar(size) {
@@ -1113,7 +1108,7 @@ async function detailPage(pid, me) {
   cmtAvatarMap[me.uid] = me.avatar_url || null;
   var cmtUids = [...new Set(allComments.map(function(c){ return c.uid; }).filter(function(uid){ return uid !== me.uid; }))];
   if (cmtUids.length) {
-    var { data: cmtProfs } = await SB.from('public_profiles').select('id,avatar_url').in('id', cmtUids);
+    var { data: cmtProfs } = await SB.rpc('get_public_profiles', { user_ids: cmtUids });
     (cmtProfs || []).forEach(function(p){ if (p.avatar_url) cmtAvatarMap[p.id] = p.avatar_url; });
   }
 
