@@ -612,11 +612,11 @@ function scatterAndDelete(tile, onDone) {
 function stopOpacityLoop() {} // no-op (opacity loop removed)
 
 // D: 타이핑 리듬 출현 — 자연스러운 타이핑 패턴으로 글자가 한 자씩 등장
-function typewriterReveal(el, txt) {
+function typewriterReveal(el, txt, onDone) {
   var i = 0;
   el.textContent = '';
   function tick() {
-    if (i >= txt.length) return;
+    if (i >= txt.length) { if (onDone) onDone(); return; }
     var ch = txt[i++];
     if (ch === '\n') el.appendChild(document.createElement('br'));
     else el.appendChild(document.createTextNode(ch));
@@ -628,6 +628,9 @@ function typewriterReveal(el, txt) {
   }
   tick();
 }
+
+// ── 피드 탭 상태 ─────────────────────────────────────────────────────
+var _feedTab = 'casual';
 
 // ── 라우터 (해시 기반) ───────────────────────────────────────────────
 var R = {
@@ -862,17 +865,21 @@ async function feedPage(me) {
     wrap.appendChild(indexWrap);
 
     btnCasual.onclick = function() {
+      _feedTab = 'casual';
       btnCasual.classList.add('active'); btnLink.classList.remove('active');
       indexWrap.classList.remove('tab-link-active');
       indexWrap.querySelectorAll('.branch-row.info').forEach(function(r){ r.classList.add('tab-hidden'); });
       indexWrap.querySelectorAll('.branch-row.casual').forEach(function(r){ r.classList.remove('tab-hidden'); });
     };
     btnLink.onclick = function() {
+      _feedTab = 'link';
       btnLink.classList.add('active'); btnCasual.classList.remove('active');
       indexWrap.classList.add('tab-link-active');
       indexWrap.querySelectorAll('.branch-row.casual').forEach(function(r){ r.classList.add('tab-hidden'); });
       indexWrap.querySelectorAll('.branch-row.info').forEach(function(r){ r.classList.remove('tab-hidden'); });
     };
+    // 이전 탭 상태 복원
+    if (_feedTab === 'link') btnLink.onclick();
   }
   wrap.appendChild(tabBar('/', me));
   return wrap;
@@ -1179,7 +1186,7 @@ async function detailPage(pid, me) {
   }
   wrap.appendChild(postEl);
   var bodyEl = postEl.querySelector('#d-post-body');
-  if (bodyEl) typewriterReveal(bodyEl, post.txt);
+  if (bodyEl) typewriterReveal(bodyEl, post.txt, function() { bodyEl.innerHTML = linkify(post.txt); });
 
   // ── 댓글 입력창 (포스트 바로 아래, 인라인) ──
   var cInput = document.createElement('div');
