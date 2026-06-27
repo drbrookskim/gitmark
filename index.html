@@ -659,6 +659,7 @@ function typewriterReveal(el, txt, onDone) {
 // ── 피드 탭 상태 ─────────────────────────────────────────────────────
 var _feedTab = 'casual';
 var _cachedMe = null;
+var _writeDraft = '';
 
 // ── 라우터 (해시 기반) ───────────────────────────────────────────────
 var R = {
@@ -1078,6 +1079,7 @@ function writePage(me) {
     submitBtn.style.opacity = '.3';
     var now = Date.now();
     await SB.from('posts').insert({ id: mkId(), uid: me.uid, nick: me.nick, pseudo: me.pseudo, txt: txt, at: now, upd: now, likes_count: 0, comments_count: 0 });
+    _writeDraft = '';
     R.go('/');
   };
   hdr.appendChild(cancelBtn);
@@ -1131,7 +1133,9 @@ function writePage(me) {
   ta.id = 'write-ta';
   ta.placeholder = '왔다 갔다는 흔적을 남기세요';
   ta.style.cssText = 'min-height:calc(100vh - 180px);font-size:13px;';
+  if (_writeDraft) ta.value = _writeDraft;
   ta.oninput = function() {
+    _writeDraft = this.value;
     var len = this.value.length, rem = MAX - len, pct = Math.min(len/MAX*100,100);
     var bar = document.getElementById('w-bar'), cnt = document.getElementById('w-cnt'), btn = document.getElementById('submit-btn');
     if (bar) { bar.style.width = pct+'%'; bar.style.background = len>MAX?'#ef4444':pct>90?'#eab308':'var(--text-muted)'; }
