@@ -349,11 +349,30 @@
         border: none; border-radius: 0; margin: 0 0 90px;
         padding: 6px 0 6px;
       }
-      .feed-branch-wrap::before { display: none; }
-      .branch-row::before { display: none; }
-      .branch-row.casual, .branch-row.info {
-        padding-left: 10px; padding-right: 10px;
+      /* casual: 좌측 라인 */
+      .feed-branch-wrap::before {
+        left: 18px; transform: none; width: 1px;
+      }
+      /* link: 우측 라인 */
+      .feed-branch-wrap::after {
+        content: ''; position: absolute; right: 18px; top: 0; bottom: 0;
+        width: 1px; background: var(--border); pointer-events: none;
+      }
+      .branch-row.casual {
+        padding-left: 36px; padding-right: 10px;
         justify-content: flex-start;
+      }
+      .branch-row.info {
+        padding-left: 10px; padding-right: 36px;
+        justify-content: flex-start;
+      }
+      /* casual: 닷 좌측 */
+      .branch-row.casual::before {
+        left: 14px; transform: none;
+      }
+      /* link: 닷 우측 */
+      .branch-row.info::before {
+        left: auto; right: 14px; transform: none;
       }
       .tab-hidden { display: none !important; }
     }
