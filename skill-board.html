@@ -1,0 +1,1429 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NELCOME SKILL.md</title>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      /* Ventriloc — analytics console on parchment */
+      --color-ink: #202020;          /* Carbon — primary text, dark buttons */
+      --color-pure-white: #ffffff;   /* Paper — card surfaces */
+      --color-fog: #efefef;          /* Mist — page canvas */
+      --color-ash: #4d4d4d;          /* Graphite — secondary text */
+      --color-graphite: #828282;     /* Slate — muted helper text */
+      --color-dove: #e8e8e8;         /* Chalk — soft dividers */
+      --color-rust: #ff682c;         /* Signal Orange — accent */
+      --color-apricot-wash: #f5f5f5; /* Fog — subtle inset band (warm card) */
+      --color-sky-wash: #f5f5f5;     /* Fog — subtle inset band (cool card) */
+      --color-inset: #f5f5f5;        /* Fog */
+
+      --font-display: 'Space Grotesk', 'Noto Sans KR', sans-serif;
+      --font-body: 'Inter', 'Noto Sans KR', sans-serif;
+
+      --radius-tags: 20px;
+      --radius-cards: 8px;
+      --radius-inputs: 8px;
+      --radius-buttons: 20px;
+      --radius-images: 8px;
+
+      --shadow-card: 0 1px 3px rgba(32,32,32,0.04), 0 4px 12px rgba(32,32,32,0.03);
+      --shadow-subtle: 0 1px 2px rgba(32,32,32,0.04);
+    }
+
+    body {
+      font-family: 'Inter', 'Noto Sans KR', sans-serif;
+      background: var(--color-fog);
+      color: var(--color-ink);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      letter-spacing: 0;
+    }
+    :lang(ko), .ko { font-family: 'Noto Sans KR', sans-serif; }
+
+    /* ── Header ───────────────────────────────── */
+    header {
+      background: var(--color-fog);
+      border-bottom: 1px solid var(--color-dove);
+      padding: 0 40px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+    .logo-wordmark {
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 400;
+      color: var(--color-ink);
+      letter-spacing: -0.025em;
+      line-height: 1;
+    }
+    .logo-wordmark span { color: var(--color-rust); }
+    .logo-divider {
+      width: 1px;
+      height: 16px;
+      background: var(--color-dove);
+    }
+    .logo-sub {
+      font-size: 13px;
+      font-weight: 450;
+      color: var(--color-graphite);
+    }
+    .header-nav {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+    }
+    .nav-link {
+      font-size: 15px;
+      font-weight: 450;
+      color: var(--color-ink);
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .nav-link:hover { color: var(--color-rust); }
+    .btn-primary {
+      background: var(--color-ink);
+      color: var(--color-pure-white);
+      border: none;
+      border-radius: var(--radius-buttons);
+      padding: 8px 20px;
+      font-family: var(--font-body);
+      font-size: 15px;
+      font-weight: 450;
+      letter-spacing: -0.009em;
+      cursor: pointer;
+      transition: opacity .18s;
+    }
+    .btn-primary:hover { opacity: .82; }
+
+    /* theme toggle */
+    .btn-theme {
+      width: 36px;
+      height: 36px;
+      border-radius: 9999px;
+      border: 1px solid var(--color-dove);
+      background: var(--color-pure-white);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 16px;
+      transition: all .18s;
+      color: var(--color-ink);
+    }
+    .btn-theme:hover { border-color: var(--color-ink); background: var(--color-fog); }
+
+    /* dark mode */
+    body.dark {
+      --color-ink: #f0f0f0;
+      --color-pure-white: #1a1a1a;
+      --color-fog: #111111;
+      --color-ash: #b0b0b0;
+      --color-graphite: #787878;
+      --color-dove: #2e2e2e;
+      --color-inset: #222222;
+      --color-apricot-wash: #1e1e1e;
+      --color-sky-wash: #1e1e1e;
+    }
+    body.dark mark { background: #5c4a00; color: #f5e173; }
+
+    /* ── Hero / Search ─────────────────────────── */
+    .hero {
+      background: var(--color-fog);
+      padding: 60px 40px 48px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-eyebrow {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-rust);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 16px;
+    }
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: 56px;
+      font-weight: 500;
+      color: var(--color-ink);
+      letter-spacing: -1.12px;
+      line-height: 0.95;
+      margin-bottom: 32px;
+    }
+    .hero-title em {
+      font-style: normal;
+      color: var(--color-rust);
+    }
+
+    .search-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      max-width: 640px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 10;
+    }
+    .search-wrap {
+      flex: 1;
+      position: relative;
+    }
+    .search-wrap input {
+      width: 100%;
+      padding: 13px 48px 13px 20px;
+      border: 1px solid var(--color-dove);
+      border-radius: var(--radius-inputs);
+      font-family: var(--font-body);
+      font-size: 15px;
+      font-weight: 400;
+      letter-spacing: -0.009em;
+      color: var(--color-ink);
+      background: var(--color-pure-white);
+      outline: none;
+      box-shadow: var(--shadow-subtle);
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .search-wrap input::placeholder { color: var(--color-graphite); }
+    .search-wrap input:focus {
+      border-color: var(--color-ink);
+      box-shadow: rgba(32,32,32,0.08) 0px 0px 0px 2px;
+    }
+    .search-icon {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--color-graphite);
+      font-size: 16px;
+      pointer-events: none;
+    }
+
+    /* recent dropdown */
+    .recent-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      right: 0;
+      background: var(--color-pure-white);
+      border: 1px solid var(--color-dove);
+      border-radius: var(--radius-images);
+      padding: 6px 0;
+      box-shadow: var(--shadow-card);
+      z-index: 200;
+    }
+    .recent-dropdown.show { display: block; }
+    .recent-header {
+      padding: 6px 16px 4px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--color-graphite);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+    }
+    .recent-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 16px;
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--color-ink);
+      cursor: pointer;
+      transition: background .12s;
+    }
+    .recent-item:hover { background: var(--color-fog); }
+    .recent-item .ri-del { margin-left: auto; font-size: 11px; color: var(--color-dove); cursor: pointer; }
+    .recent-item .ri-del:hover { color: var(--color-graphite); }
+    .recent-empty { padding: 10px 16px; font-size: 13px; color: var(--color-dove); }
+
+    .btn-search {
+      background: var(--color-ink);
+      color: var(--color-pure-white);
+      border: none;
+      border-radius: var(--radius-buttons);
+      padding: 13px 22px;
+      font-family: var(--font-body);
+      font-size: 15px;
+      font-weight: 450;
+      letter-spacing: -0.009em;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity .18s;
+    }
+    .btn-search:hover { opacity: .82; }
+    .btn-register {
+      background: transparent;
+      color: var(--color-ink);
+      border: 1px solid var(--color-ink);
+      border-radius: var(--radius-buttons);
+      padding: 12px 22px;
+      font-family: var(--font-body);
+      font-size: 15px;
+      font-weight: 450;
+      letter-spacing: -0.009em;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all .18s;
+    }
+    .btn-register:hover { background: var(--color-ink); color: var(--color-pure-white); }
+
+    /* recent tags */
+    .recent-tags {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      max-width: 640px;
+      margin: 16px auto 0;
+      position: relative;
+      z-index: 1;
+    }
+    .recent-tags-label { font-size: 13px; color: var(--color-graphite); white-space: nowrap; }
+    .recent-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 12px;
+      background: var(--color-pure-white);
+      border: 1px solid var(--color-dove);
+      border-radius: var(--radius-tags);
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--color-ash);
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .recent-tag:hover { border-color: var(--color-ink); color: var(--color-ink); }
+    .recent-tag .del { font-size: 10px; color: var(--color-dove); }
+    .recent-tag .del:hover { color: var(--color-graphite); }
+
+    /* ── Filters ───────────────────────────────── */
+    .filter-bar {
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--color-fog);
+      border-bottom: 1px solid var(--color-dove);
+    }
+    .filter-label { font-size: 13px; color: var(--color-graphite); margin-right: 4px; }
+    .filter-chip {
+      padding: 5px 14px;
+      border-radius: var(--radius-tags);
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 450;
+      letter-spacing: -0.009em;
+      cursor: pointer;
+      border: 1px solid var(--color-dove);
+      background: var(--color-pure-white);
+      color: var(--color-graphite);
+      transition: all .15s;
+    }
+    .filter-chip:hover { border-color: var(--color-ink); color: var(--color-ink); }
+    .filter-chip.active { background: var(--color-ink); color: var(--color-pure-white); border-color: var(--color-ink); }
+
+    /* ── Board ─────────────────────────────────── */
+    .board-wrap { padding: 32px 40px 80px; max-width: 1280px; margin: 0 auto; }
+    .board-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .board-header h2 {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 400;
+      color: var(--color-ink);
+      letter-spacing: -0.2px;
+    }
+    .board-meta { font-size: 13px; color: var(--color-graphite); }
+
+    .columns {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      align-items: start;
+    }
+    @media (max-width: 960px) { .columns { grid-template-columns: repeat(2,1fr); } }
+    @media (max-width: 600px) { .columns { grid-template-columns: 1fr; } }
+
+    .column { display: flex; flex-direction: column; gap: 12px; }
+    .col-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--color-dove);
+      margin-bottom: 4px;
+    }
+    .col-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-graphite);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+    .col-count {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--color-pure-white);
+      background: var(--color-ink);
+      padding: 1px 7px;
+      border-radius: var(--radius-tags);
+    }
+
+    /* Card */
+    .card {
+      background: var(--color-pure-white);
+      border-radius: var(--radius-cards);
+      padding: 20px;
+      box-shadow: var(--shadow-card);
+      cursor: pointer;
+      transition: transform .18s, box-shadow .18s;
+      border: none;
+    }
+    .card:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 1px 3px rgba(32,32,32,0.06), 0 8px 20px rgba(32,32,32,0.05);
+    }
+    .card.warm { background: var(--color-pure-white); border-left: 2px solid var(--color-rust); }
+    .card.cool { background: var(--color-pure-white); }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .card-title {
+      font-size: 15px;
+      font-weight: 480;
+      color: var(--color-ink);
+      line-height: 1.35;
+      flex: 1;
+    }
+    .card-time {
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--color-graphite);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .card-slug {
+      font-family: monospace;
+      font-size: 11px;
+      color: var(--color-rust);
+      margin-bottom: 8px;
+      opacity: .8;
+    }
+    .card-desc {
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--color-ash);
+      line-height: 1.5;
+      margin-bottom: 14px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .card-author {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--color-graphite);
+    }
+    .avatar {
+      width: 22px;
+      height: 22px;
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 500;
+      color: var(--color-ink);
+      flex-shrink: 0;
+    }
+    .type-badge {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: var(--radius-tags);
+    }
+    .type-badge.rigid { background: var(--color-inset); color: var(--color-rust); }
+    .type-badge.flexible { background: var(--color-inset); color: var(--color-graphite); }
+    .trigger-snippet {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(0,0,0,.06);
+      font-size: 11px;
+      color: var(--color-graphite);
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .add-new {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 14px;
+      border: 1.5px dashed var(--color-dove);
+      border-radius: var(--radius-cards);
+      font-size: 13px;
+      font-weight: 450;
+      color: var(--color-graphite);
+      cursor: pointer;
+      transition: all .18s;
+    }
+    .add-new:hover { border-color: var(--color-ink); color: var(--color-ink); }
+
+    .empty-state {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 80px 0;
+      color: var(--color-graphite);
+      font-size: 15px;
+    }
+    .empty-state.show { display: flex; }
+    .empty-state .emoji { font-size: 40px; }
+
+    mark { background: #fef9c3; color: inherit; border-radius: 3px; padding: 0 2px; }
+
+    /* ── Modals ─────────────────────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(23,25,28,.4);
+      z-index: 500;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      backdrop-filter: blur(2px);
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: var(--color-pure-white);
+      border-radius: var(--radius-cards);
+      padding: 28px;
+      width: 100%;
+      max-width: 520px;
+      box-shadow: var(--shadow-card);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .modal-head h3 {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 400;
+      color: var(--color-ink);
+      letter-spacing: -0.2px;
+    }
+    .modal-close {
+      width: 28px;
+      height: 28px;
+      border-radius: 9999px;
+      border: 1px solid var(--color-dove);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 12px;
+      color: var(--color-graphite);
+      transition: all .15s;
+    }
+    .modal-close:hover { background: var(--color-fog); color: var(--color-ink); }
+
+    /* upload */
+    .upload-zone {
+      border: 1.5px dashed var(--color-dove);
+      border-radius: var(--radius-images);
+      padding: 24px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .18s;
+      background: var(--color-fog);
+      margin-bottom: 4px;
+    }
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: var(--color-ink);
+      background: var(--color-apricot-wash);
+    }
+    .uz-icon { font-size: 26px; margin-bottom: 8px; }
+    .uz-title { font-size: 14px; font-weight: 480; color: var(--color-ink); margin-bottom: 3px; }
+    .uz-sub { font-size: 12px; color: var(--color-graphite); }
+    .uz-btn {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 7px 18px;
+      background: var(--color-ink);
+      color: var(--color-pure-white);
+      border-radius: var(--radius-buttons);
+      font-size: 13px;
+      font-weight: 450;
+    }
+    .upload-parsed {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      border-radius: var(--radius-images);
+      margin-bottom: 4px;
+    }
+    .upload-parsed.show { display: flex; }
+    .up-name { font-size: 13px; font-weight: 480; color: #166534; flex: 1; }
+    .up-clear { font-size: 12px; color: var(--color-dove); cursor: pointer; }
+    .up-clear:hover { color: var(--color-graphite); }
+    .upload-or {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 16px 0;
+      font-size: 12px;
+      color: var(--color-graphite);
+    }
+    .upload-or::before, .upload-or::after {
+      content: '';
+      flex: 1;
+      border-top: 1px solid var(--color-dove);
+    }
+
+    .form-section {
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--color-graphite);
+      margin: 20px 0 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--color-dove);
+    }
+    .form-group { margin-bottom: 14px; }
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 480;
+      color: var(--color-ash);
+      margin-bottom: 5px;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--color-dove);
+      border-radius: var(--radius-inputs);
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 400;
+      letter-spacing: -0.009em;
+      color: var(--color-ink);
+      background: var(--color-pure-white);
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .form-group input::placeholder,
+    .form-group textarea::placeholder { color: var(--color-graphite); }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: var(--color-ink);
+      box-shadow: rgba(23,25,28,.1) 0px 0px 0px 2px;
+    }
+    .form-group textarea { resize: vertical; min-height: 72px; }
+    .form-group .hint { font-size: 11px; color: var(--color-graphite); margin-top: 4px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .mono-input { font-family: monospace !important; font-size: 13px !important; }
+
+    .modal-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 24px;
+    }
+    .btn { font-family: var(--font-body); letter-spacing: -0.009em; cursor: pointer; transition: all .18s; }
+    .btn-cancel {
+      padding: 10px 20px;
+      border-radius: var(--radius-buttons);
+      font-size: 15px;
+      font-weight: 450;
+      background: var(--color-fog);
+      color: var(--color-graphite);
+      border: 1px solid var(--color-dove);
+    }
+    .btn-cancel:hover { background: var(--color-dove); color: var(--color-ink); }
+    .btn-submit {
+      padding: 10px 20px;
+      border-radius: var(--radius-buttons);
+      font-size: 15px;
+      font-weight: 450;
+      background: var(--color-ink);
+      color: var(--color-pure-white);
+      border: none;
+    }
+    .btn-submit:hover { opacity: .82; }
+    .btn-delete {
+      padding: 10px 20px;
+      border-radius: var(--radius-buttons);
+      font-size: 15px;
+      font-weight: 450;
+      background: transparent;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+    .btn-delete:hover { background: #fef2f2; border-color: #b91c1c; }
+    .btn-delete-confirm {
+      padding: 10px 20px;
+      border-radius: var(--radius-buttons);
+      font-size: 15px;
+      font-weight: 450;
+      background: #dc2626;
+      color: #fff;
+      border: none;
+    }
+    .btn-delete-confirm:hover { background: #b91c1c; }
+
+    /* detail modal */
+    .detail-slug {
+      font-family: monospace;
+      font-size: 13px;
+      color: var(--color-rust);
+      margin-bottom: 12px;
+    }
+    .detail-desc {
+      font-size: 15px;
+      font-weight: 400;
+      color: var(--color-ash);
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      background: var(--color-fog);
+      border-radius: var(--radius-images);
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .detail-item label {
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--color-graphite);
+      display: block;
+      margin-bottom: 4px;
+    }
+    .detail-item span { font-size: 14px; font-weight: 480; color: var(--color-ink); }
+    .trigger-section-label {
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--color-graphite);
+      margin-bottom: 8px;
+    }
+    .trigger-block {
+      background: var(--color-ink);
+      border-radius: var(--radius-images);
+      padding: 14px 16px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #d6d3d1;
+      line-height: 1.7;
+    }
+    .trigger-block .k { color: #fb923c; }
+    .trigger-block .v { color: #86efac; }
+
+    /* download buttons */
+    .dl-section-label {
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--color-graphite);
+      margin-bottom: 10px;
+    }
+    .download-row {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-dl {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      padding: 14px 8px;
+      border-radius: var(--radius-images);
+      border: 1px solid var(--color-dove);
+      background: var(--color-fog);
+      cursor: pointer;
+      transition: all .18s;
+      font-family: var(--font-body);
+    }
+    .btn-dl:hover { border-color: var(--color-ink); background: var(--color-apricot-wash); }
+    .btn-dl .dl-icon { font-size: 20px; }
+    .btn-dl .dl-ext { font-size: 12px; font-weight: 500; font-family: monospace; color: var(--color-rust); }
+    .btn-dl .dl-desc { font-size: 10px; color: var(--color-graphite); text-align: center; line-height: 1.4; }
+
+    /* delete modal compact */
+    .delete-warning {
+      font-size: 14px;
+      color: var(--color-ash);
+      line-height: 1.6;
+      margin-bottom: 18px;
+      padding: 12px 14px;
+      background: #fef2f2;
+      border-radius: var(--radius-images);
+      border: 1px solid #fecaca;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="logo">
+    <span class="logo-wordmark">NELCOME <span style="color:var(--color-rust)">SKILL.md</span></span>
+  </div>
+  <nav class="header-nav">
+    <button class="btn-theme" onclick="toggleTheme()" id="themeBtn" title="테마 변경">☀️</button>
+  </nav>
+</header>
+
+<!-- Hero / Search -->
+<section class="hero">
+  <div class="hero-eyebrow">Claude Agent Skills</div>
+  <h1 class="hero-title">SKILL AGENTS</h1>
+
+  <div class="search-row">
+    <div class="search-wrap">
+      <input type="text" id="searchInput"
+             placeholder="스킬 이름, 슬러그, 트리거 조건 검색..."
+             autocomplete="off" />
+      <span class="search-icon">⌕</span>
+      <div class="recent-dropdown" id="recentDropdown"></div>
+    </div>
+    <button class="btn-search" onclick="doSearch()">검색</button>
+    <button class="btn-register" onclick="openModal()">+ 스킬 등록</button>
+  </div>
+
+  <div class="recent-tags" id="recentTagsRow" style="display:none"></div>
+</section>
+
+<!-- Filter bar -->
+<div class="filter-bar">
+  <span class="filter-label">유형</span>
+  <button class="filter-chip active" onclick="setFilter('all',this)">전체</button>
+  <button class="filter-chip" onclick="setFilter('rigid',this)">Rigid</button>
+  <button class="filter-chip" onclick="setFilter('flexible',this)">Flexible</button>
+</div>
+
+<!-- Board -->
+<div class="board-wrap">
+  <div class="board-header">
+    <h2>스킬 보드</h2>
+    <span class="board-meta" id="boardMeta">총 <strong>0</strong>개</span>
+  </div>
+  <div class="columns" id="columns"></div>
+  <div class="empty-state" id="emptyState">
+    <span class="emoji">⌕</span>
+    <span>검색 결과가 없습니다.</span>
+  </div>
+</div>
+
+<!-- Register Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>새 스킬 등록</h3>
+      <span class="modal-close" onclick="closeModal()">✕</span>
+    </div>
+
+    <div class="upload-zone" id="uploadZone"
+         onclick="document.getElementById('fileInput').click()"
+         ondragover="handleDragOver(event)"
+         ondragleave="handleDragLeave(event)"
+         ondrop="handleDrop(event)">
+      <div class="uz-icon">📄</div>
+      <div class="uz-title">.md 스킬 파일 업로드</div>
+      <div class="uz-sub">frontmatter에서 정보를 자동으로 읽어옵니다</div>
+      <span class="uz-btn">파일 선택</span>
+    </div>
+    <div class="upload-parsed" id="uploadParsed">
+      <span>✅</span>
+      <span class="up-name" id="uploadFileName"></span>
+      <span class="up-clear" onclick="clearUpload()">✕ 초기화</span>
+    </div>
+    <input type="file" id="fileInput" accept=".md,.txt,.yaml,.yml" style="display:none" onchange="handleFileSelect(event)" />
+
+    <div class="upload-or">또는 직접 입력</div>
+
+    <div class="form-section">기본 정보</div>
+    <div class="form-group">
+      <label>스킬 이름 *</label>
+      <input type="text" id="fTitle" placeholder="예: systematic-debugging" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>슬러그 (slug) *</label>
+        <input type="text" id="fSlug" class="mono-input" placeholder="my-skill" />
+        <div class="hint">영문 소문자, 하이픈만 사용</div>
+      </div>
+      <div class="form-group">
+        <label>카테고리</label>
+        <select id="fCategory">
+          <option value="0">워크플로우</option>
+          <option value="1">개발 / 엔지니어링</option>
+          <option value="2">분석 / 기획</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>설명</label>
+      <textarea id="fDesc" placeholder="이 스킬이 언제, 어떻게 사용되는지 설명하세요."></textarea>
+    </div>
+
+    <div class="form-section">트리거 & 동작</div>
+    <div class="form-group">
+      <label>트리거 조건</label>
+      <textarea id="fTrigger" class="mono-input" placeholder='예: 사용자가 "디버그", "버그 수정" 등을 언급할 때' style="min-height:56px"></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>유형</label>
+        <select id="fType">
+          <option value="rigid">Rigid (엄격)</option>
+          <option value="flexible">Flexible (유연)</option>
+        </select>
+        <div class="hint">Rigid: 정확히 따름 / Flexible: 맥락 적용</div>
+      </div>
+      <div class="form-group">
+        <label>예상 실행 시간</label>
+        <input type="text" id="fDuration" placeholder="예: 2-5m" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label>작성자</label>
+      <input type="text" id="fAuthor" placeholder="홍길동" />
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeModal()">취소</button>
+      <button class="btn btn-submit" onclick="submitSkill()">등록하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="detailOverlay" onclick="handleDetailOverlay(event)">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-head">
+      <h3 id="dTitle"></h3>
+      <span class="modal-close" onclick="closeDetail()">✕</span>
+    </div>
+    <div class="detail-slug" id="dSlug"></div>
+    <div class="detail-desc" id="dDesc"></div>
+    <div class="detail-grid">
+      <div class="detail-item"><label>유형</label><span id="dType"></span></div>
+      <div class="detail-item"><label>카테고리</label><span id="dCat"></span></div>
+      <div class="detail-item"><label>예상 시간</label><span id="dDur"></span></div>
+      <div class="detail-item"><label>작성자</label><span id="dAuthor"></span></div>
+    </div>
+    <div class="trigger-section-label">트리거 조건</div>
+    <div class="trigger-block" id="dTrigger"></div>
+
+    <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--color-dove)">
+      <div class="dl-section-label">다운로드</div>
+      <div class="download-row">
+        <button class="btn-dl" onclick="downloadMd()">
+          <span class="dl-icon">📄</span>
+          <span class="dl-ext">.md</span>
+          <span class="dl-desc">YAML frontmatter<br>포함 마크다운</span>
+        </button>
+        <button class="btn-dl" onclick="downloadZip()">
+          <span class="dl-icon">🗜️</span>
+          <span class="dl-ext">.zip</span>
+          <span class="dl-desc">SKILL.md 포함<br>압축 패키지</span>
+        </button>
+        <button class="btn-dl" onclick="downloadSkill()">
+          <span class="dl-icon">⚡</span>
+          <span class="dl-ext">.skill</span>
+          <span class="dl-desc">SKILL.md 포함<br>스킬 패키지</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="modal-actions" style="margin-top:20px">
+      <button class="btn btn-delete" onclick="openDeleteConfirm()">삭제</button>
+      <div style="flex:1"></div>
+      <button class="btn btn-cancel" onclick="closeDetail()">닫기</button>
+      <button class="btn btn-submit" id="dUseBtn">이 스킬 사용</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete confirm modal -->
+<div class="modal-overlay" id="deleteOverlay" onclick="handleDeleteOverlay(event)">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-head">
+      <h3>스킬 삭제</h3>
+      <span class="modal-close" onclick="closeDeleteConfirm()">✕</span>
+    </div>
+    <div class="delete-warning">
+      <strong id="deleteTargetName"></strong> 스킬을 삭제합니다.<br>
+      이 작업은 되돌릴 수 없습니다. 계속하려면 비밀번호를 입력하세요.
+    </div>
+    <div class="form-group">
+      <label>비밀번호</label>
+      <div style="position:relative">
+        <input type="password" id="deletePassword" placeholder="비밀번호 입력"
+               style="padding-right:44px" onkeydown="if(event.key==='Enter')confirmDelete()" />
+        <span id="pwToggle" onclick="togglePw()"
+              style="position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:14px;color:var(--color-graphite);user-select:none">👁</span>
+      </div>
+      <div id="deleteError" style="display:none;margin-top:5px;font-size:12px;color:#dc2626">비밀번호가 올바르지 않습니다.</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeDeleteConfirm()">취소</button>
+      <button class="btn btn-delete-confirm" onclick="confirmDelete()">삭제하기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ─── Data ───────────────────────────────────── */
+const COL_NAMES = ['워크플로우', '개발 / 엔지니어링', '분석 / 기획'];
+const COL_ACCENT = ['#5d2a1a', '#1d4ed8', '#6b21a8'];
+const AVATAR_BG = [
+  ['#fbe1d1','#5d2a1a'], ['#d3e3fc','#1d4ed8'],
+  ['#dcfce7','#15803d'], ['#fef9c3','#a16207'],
+];
+
+let skills = [
+  { id:1, title:'Systematic Debugging', slug:'systematic-debugging',
+    desc:'버그를 체계적으로 추적·수정하는 프로세스. 증상 파악 → 가설 → 검증 → 수정 순서로 진행.',
+    trigger:'사용자가 "버그", "에러", "디버그", "왜 안돼"를 언급하거나 오류 스택트레이스를 공유할 때',
+    type:'rigid', duration:'5-15m', author:'Anthropic', col:1 },
+  { id:2, title:'Test-Driven Development', slug:'test-driven-development',
+    desc:'코드 작성 전 테스트를 먼저 작성하는 TDD 워크플로우. Red→Green→Refactor 사이클 적용.',
+    trigger:'새 기능 구현을 시작하거나 "TDD로 해줘", "테스트부터 작성해" 요청 시',
+    type:'rigid', duration:'전체 작업', author:'Anthropic', col:1 },
+  { id:3, title:'Writing Plans', slug:'writing-plans',
+    desc:'복잡한 구현 작업 전 단계별 실행 계획을 수립하고 사용자 승인을 받는 스킬.',
+    trigger:'여러 파일을 수정하거나 새 기능 설계가 필요한 비자명한 작업 시작 시',
+    type:'flexible', duration:'3-8m', author:'Anthropic', col:0 },
+  { id:4, title:'Brainstorming', slug:'brainstorming',
+    desc:'구현에 들어가기 전 아이디어를 다각도로 탐색하고 최선의 접근법을 선택하는 스킬.',
+    trigger:'플랜 모드 진입 전, 또는 "어떻게 접근할까?", "방법이 뭐가 있을까?" 류의 탐색 질문 시',
+    type:'flexible', duration:'3-10m', author:'Anthropic', col:0 },
+  { id:5, title:'Code Review', slug:'code-review',
+    desc:'변경된 코드의 정확성·재사용성·효율성을 리뷰. low/medium/high/ultra 노력 수준 선택 가능.',
+    trigger:'사용자가 /code-review 또는 "코드 리뷰해줘", "PR 리뷰" 등을 요청할 때',
+    type:'flexible', duration:'5-30m', author:'Anthropic', col:1 },
+  { id:6, title:'Finishing a Dev Branch', slug:'finishing-a-dev-branch',
+    desc:'개발 완료 후 PR 제출 전 체크리스트: 린팅, 테스트, 커밋 메시지, PR 설명 작성 등.',
+    trigger:'작업이 완료되어 브랜치를 마무리하고 PR을 올릴 준비가 됐을 때',
+    type:'flexible', duration:'5-10m', author:'Anthropic', col:0 },
+  { id:7, title:'Verification Before Completion', slug:'verification-before-completion',
+    desc:'작업 완료 보고 전 실제로 기능이 올바르게 동작하는지 검증하는 스킬.',
+    trigger:'구현 작업이 끝나고 사용자에게 완료를 보고하기 직전',
+    type:'rigid', duration:'2-5m', author:'Anthropic', col:0 },
+  { id:8, title:'Market Researcher', slug:'market-researcher',
+    desc:'섹터·테마 시장 조사 — 산업 개요, 경쟁 구도, 트레이딩 콤프, 테마 아이디어 리스트 작성.',
+    trigger:'애널리스트나 PM이 섹터·테마 프라이머를 요청할 때',
+    type:'flexible', duration:'15-40m', author:'Plugin', col:2 },
+];
+let nextId = 9;
+let activeFilter = 'all';
+let currentQuery = '';
+let detailSkill = null;
+const DELETE_PASSWORD = 'skill1234';
+
+/* ─── Recent searches ─────────────────────────── */
+let recents = JSON.parse(localStorage.getItem('csb_recents') || '[]');
+function saveRecents() { localStorage.setItem('csb_recents', JSON.stringify(recents)); }
+function addRecent(q) {
+  if (!q) return;
+  recents = [q, ...recents.filter(r => r !== q)].slice(0, 8);
+  saveRecents(); renderRecentTags();
+}
+function removeRecent(q) {
+  recents = recents.filter(r => r !== q);
+  saveRecents(); renderRecentTags(); renderDropdown();
+}
+function renderRecentTags() {
+  const row = document.getElementById('recentTagsRow');
+  if (!recents.length) { row.style.display = 'none'; return; }
+  row.style.display = 'flex';
+  row.innerHTML = `<span class="recent-tags-label">최근:</span>` +
+    recents.map(r => `<span class="recent-tag" onclick="applyRecent('${esc(r)}')">${esc(r)}<span class="del" onclick="event.stopPropagation();removeRecent('${esc(r)}')">✕</span></span>`).join('');
+}
+function renderDropdown() {
+  const dd = document.getElementById('recentDropdown');
+  if (!recents.length) { dd.innerHTML = '<div class="recent-empty">최근 검색어가 없습니다</div>'; return; }
+  dd.innerHTML = '<div class="recent-header">최근 검색어</div>' +
+    recents.map(r => `<div class="recent-item" onclick="applyRecent('${esc(r)}')"><span>↩</span><span>${esc(r)}</span><span class="ri-del" onclick="event.stopPropagation();removeRecent('${esc(r)}')">✕</span></div>`).join('');
+}
+function applyRecent(q) {
+  document.getElementById('searchInput').value = q;
+  closeDropdown(); doSearch();
+}
+const searchInput = document.getElementById('searchInput');
+const recentDropdown = document.getElementById('recentDropdown');
+searchInput.addEventListener('focus', () => { renderDropdown(); recentDropdown.classList.add('show'); });
+searchInput.addEventListener('blur', () => setTimeout(closeDropdown, 150));
+searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+function closeDropdown() { recentDropdown.classList.remove('show'); }
+
+/* ─── Filter ──────────────────────────────────── */
+function setFilter(f, el) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderBoard();
+}
+
+/* ─── Search & render ─────────────────────────── */
+function doSearch() {
+  const q = searchInput.value.trim();
+  addRecent(q);
+  currentQuery = q.toLowerCase();
+  closeDropdown(); renderBoard();
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function hl(text, q) {
+  if (!q) return esc(text);
+  const r = q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  return esc(text).replace(new RegExp(`(${r})`, 'gi'), '<mark>$1</mark>');
+}
+function avatarHtml(name) {
+  const init = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+  const p = AVATAR_BG[(name.charCodeAt(0)+(name.charCodeAt(1)||0)) % AVATAR_BG.length];
+  return `<div class="avatar" style="background:${p[0]};color:${p[1]}">${init}</div>`;
+}
+
+function renderBoard() {
+  const q = currentQuery;
+  const filtered = skills.filter(s => {
+    if (activeFilter !== 'all' && s.type !== activeFilter) return false;
+    if (!q) return true;
+    return [s.title, s.slug, s.desc, s.trigger, s.author].some(v => v.toLowerCase().includes(q));
+  });
+  document.getElementById('boardMeta').innerHTML = `총 <strong>${filtered.length}</strong>개`;
+  const cols = document.getElementById('columns');
+  const empty = document.getElementById('emptyState');
+  if (!filtered.length) { cols.innerHTML = ''; empty.classList.add('show'); return; }
+  empty.classList.remove('show');
+  const byCol = [[],[],[]];
+  filtered.forEach(s => byCol[s.col].push(s));
+  cols.innerHTML = COL_NAMES.map((name, ci) => `
+    <div class="column">
+      <div class="col-header">
+        <span class="col-title">${name}</span>
+        <span class="col-count">${byCol[ci].length}</span>
+      </div>
+      ${byCol[ci].map(s => {
+        const tint = s.type === 'rigid' ? ' warm' : (s.col === 1 ? ' cool' : '');
+        return `
+        <div class="card${tint}" onclick="openDetail(${s.id})">
+          <div class="card-top">
+            <div class="card-title">${hl(s.title, q)}</div>
+            <div class="card-time">${s.duration}</div>
+          </div>
+          <div class="card-slug">/${hl(s.slug, q)}</div>
+          <div class="card-desc">${hl(s.desc, q)}</div>
+          <div class="card-footer">
+            <div class="card-author">${avatarHtml(s.author)}<span>${hl(s.author, q)}</span></div>
+            <span class="type-badge ${s.type}">${s.type === 'rigid' ? 'Rigid' : 'Flexible'}</span>
+          </div>
+          <div class="trigger-snippet">${hl(s.trigger.slice(0,60)+(s.trigger.length>60?'…':''), q)}</div>
+        </div>`}).join('')}
+      ${!q ? `<div class="add-new" onclick="openModalCol(${ci})">＋ 새 스킬 추가</div>` : ''}
+    </div>
+  `).join('');
+}
+
+/* ─── Register Modal ──────────────────────────── */
+function openModal(col) {
+  if (col !== undefined) document.getElementById('fCategory').value = col;
+  document.getElementById('modalOverlay').classList.add('show');
+}
+function openModalCol(col) { openModal(col); }
+function closeModal() { document.getElementById('modalOverlay').classList.remove('show'); }
+function handleOverlayClick(e) { if (e.target === e.currentTarget) closeModal(); }
+
+document.getElementById('fTitle').addEventListener('input', function() {
+  const slug = this.value.toLowerCase().replace(/[^a-z0-9\s-]/g,'').trim().replace(/\s+/g,'-');
+  const sf = document.getElementById('fSlug');
+  if (!sf._touched) sf.value = slug;
+});
+document.getElementById('fSlug').addEventListener('input', function() { this._touched = true; });
+
+/* ─── File upload & parse ─────────────────────── */
+function handleDragOver(e) { e.preventDefault(); document.getElementById('uploadZone').classList.add('drag-over'); }
+function handleDragLeave() { document.getElementById('uploadZone').classList.remove('drag-over'); }
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('uploadZone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) parseSkillFile(file);
+}
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) parseSkillFile(file);
+  e.target.value = '';
+}
+function parseSkillFile(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const text = e.target.result;
+    const parsed = parseFrontmatter(text);
+    if (parsed.name || parsed.title) {
+      const raw = parsed.name || parsed.title;
+      document.getElementById('fTitle').value = raw;
+      const sf = document.getElementById('fSlug');
+      if (!sf._touched) sf.value = raw.toLowerCase().replace(/[^a-z0-9\s-]/g,'').trim().replace(/\s+/g,'-');
+    }
+    if (parsed.description) document.getElementById('fDesc').value = parsed.description;
+    if (parsed.trigger || parsed.when_to_use) document.getElementById('fTrigger').value = parsed.trigger || parsed.when_to_use;
+    if (parsed.author) document.getElementById('fAuthor').value = parsed.author;
+    if (parsed.duration) document.getElementById('fDuration').value = parsed.duration;
+    if (parsed.type) { const t = parsed.type.toLowerCase(); if (['rigid','flexible'].includes(t)) document.getElementById('fType').value = t; }
+    if (!parsed.description && parsed._body) {
+      const bl = parsed._body.split('\n').find(l => l.trim() && !l.startsWith('#'));
+      if (bl) document.getElementById('fDesc').value = bl.trim().slice(0,200);
+    }
+    document.getElementById('uploadFileName').textContent = `${file.name} 파싱 완료`;
+    document.getElementById('uploadParsed').classList.add('show');
+    document.getElementById('uploadZone').style.display = 'none';
+  };
+  reader.readAsText(file);
+}
+function parseFrontmatter(text) {
+  const result = {};
+  const match = text.match(/^---\s*\n([\s\S]*?)\n---\s*\n?([\s\S]*)/);
+  if (!match) { result._body = text; return result; }
+  const yaml = match[1];
+  result._body = match[2] || '';
+  yaml.split('\n').forEach(line => {
+    const m = line.match(/^(\w[\w_-]*):\s*(.+)/);
+    if (m) result[m[1].trim()] = m[2].trim().replace(/^["']|["']$/g,'');
+  });
+  const metaBlock = yaml.match(/^metadata:\s*\n((?:[ \t]+.+\n?)*)/m);
+  if (metaBlock) metaBlock[1].split('\n').forEach(line => {
+    const m = line.match(/^\s+(\w+):\s*(.+)/);
+    if (m) result[m[1].trim()] = m[2].trim().replace(/^["']|["']$/g,'');
+  });
+  return result;
+}
+function clearUpload() {
+  document.getElementById('uploadParsed').classList.remove('show');
+  document.getElementById('uploadZone').style.display = '';
+  ['fTitle','fSlug','fDesc','fTrigger','fDuration','fAuthor'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('fSlug')._touched = false;
+}
+
+function submitSkill() {
+  const title = document.getElementById('fTitle').value.trim();
+  const slug = document.getElementById('fSlug').value.trim();
+  if (!title || !slug) { alert('스킬 이름과 슬러그를 입력하세요.'); return; }
+  skills.push({
+    id: nextId++, title, slug,
+    desc: document.getElementById('fDesc').value.trim() || '설명 없음',
+    trigger: document.getElementById('fTrigger').value.trim() || '명시적 호출 시',
+    type: document.getElementById('fType').value,
+    duration: document.getElementById('fDuration').value.trim() || '-',
+    author: document.getElementById('fAuthor').value.trim() || '익명',
+    col: parseInt(document.getElementById('fCategory').value),
+  });
+  ['fTitle','fSlug','fDesc','fTrigger','fDuration','fAuthor'].forEach(id => {
+    const el = document.getElementById(id);
+    el.value = '';
+    if (id === 'fSlug') el._touched = false;
+  });
+  clearUpload(); closeModal(); renderBoard();
+}
+
+/* ─── Detail Modal ────────────────────────────── */
+function openDetail(id) {
+  const s = skills.find(x => x.id === id);
+  if (!s) return;
+  detailSkill = s;
+  document.getElementById('dTitle').textContent = s.title;
+  document.getElementById('dSlug').textContent = '/' + s.slug;
+  document.getElementById('dDesc').textContent = s.desc;
+  document.getElementById('dType').innerHTML = s.type === 'rigid'
+    ? '<span class="type-badge rigid">Rigid</span>'
+    : '<span class="type-badge flexible">Flexible</span>';
+  document.getElementById('dCat').textContent = COL_NAMES[s.col];
+  document.getElementById('dDur').textContent = s.duration;
+  document.getElementById('dAuthor').textContent = s.author;
+  document.getElementById('dTrigger').innerHTML =
+    `<span class="k">when</span>: <span class="v">"${esc(s.trigger)}"</span>`;
+  document.getElementById('dUseBtn').textContent = '이 스킬 사용';
+  document.getElementById('dUseBtn').onclick = () => {
+    navigator.clipboard?.writeText('/' + s.slug).catch(()=>{});
+    document.getElementById('dUseBtn').textContent = '복사됨 ✓';
+    setTimeout(() => { document.getElementById('dUseBtn').textContent = '이 스킬 사용'; }, 2000);
+  };
+  document.getElementById('detailOverlay').classList.add('show');
+}
+function closeDetail() { document.getElementById('detailOverlay').classList.remove('show'); }
+function handleDetailOverlay(e) { if (e.target === e.currentTarget) closeDetail(); }
+
+/* ─── Download ────────────────────────────────── */
+function buildSkillMd(s) {
+  return [
+    '---',
+    `name: ${s.slug}`,
+    `title: ${s.title}`,
+    `description: ${s.desc}`,
+    `author: ${s.author}`,
+    `type: ${s.type}`,
+    `duration: ${s.duration}`,
+    `category: ${COL_NAMES[s.col]}`,
+    `trigger: "${s.trigger}"`,
+    'metadata:',
+    `  category: ${COL_NAMES[s.col]}`,
+    `  type: ${s.type}`,
+    '---',
+    '',
+    `# ${s.title}`,
+    '',
+    s.desc,
+    '',
+    '## When to use',
+    '',
+    s.trigger,
+    '',
+    '## Details',
+    '',
+    `- **Type**: ${s.type === 'rigid' ? 'Rigid — follow exactly' : 'Flexible — adapt to context'}`,
+    `- **Estimated duration**: ${s.duration}`,
+    `- **Author**: ${s.author}`,
+    `- **Category**: ${COL_NAMES[s.col]}`,
+  ].join('\n');
+}
+function triggerDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function downloadMd() {
+  if (!detailSkill) return;
+  triggerDownload(new Blob([buildSkillMd(detailSkill)], { type:'text/markdown' }), `${detailSkill.slug}.md`);
+}
+async function downloadZip() {
+  if (!detailSkill) return;
+  const zip = new JSZip();
+  zip.file('SKILL.md', buildSkillMd(detailSkill));
+  const blob = await zip.generateAsync({ type:'blob' });
+  triggerDownload(blob, `${detailSkill.slug}.zip`);
+}
+async function downloadSkill() {
+  if (!detailSkill) return;
+  const zip = new JSZip();
+  zip.file('SKILL.md', buildSkillMd(detailSkill));
+  const blob = await zip.generateAsync({ type:'blob' });
+  triggerDownload(new Blob([blob], { type:'application/octet-stream' }), `${detailSkill.slug}.skill`);
+}
+
+/* ─── Delete ──────────────────────────────────── */
+function openDeleteConfirm() {
+  if (!detailSkill) return;
+  document.getElementById('deleteTargetName').textContent = detailSkill.title;
+  document.getElementById('deletePassword').value = '';
+  document.getElementById('deleteError').style.display = 'none';
+  document.getElementById('deleteOverlay').classList.add('show');
+  setTimeout(() => document.getElementById('deletePassword').focus(), 100);
+}
+function closeDeleteConfirm() { document.getElementById('deleteOverlay').classList.remove('show'); }
+function handleDeleteOverlay(e) { if (e.target === e.currentTarget) closeDeleteConfirm(); }
+function togglePw() {
+  const input = document.getElementById('deletePassword');
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+function confirmDelete() {
+  if (document.getElementById('deletePassword').value !== DELETE_PASSWORD) {
+    document.getElementById('deleteError').style.display = 'block';
+    document.getElementById('deletePassword').focus();
+    return;
+  }
+  skills = skills.filter(s => s.id !== detailSkill.id);
+  closeDeleteConfirm(); closeDetail(); renderBoard();
+}
+
+/* ─── Theme ───────────────────────────────────── */
+function toggleTheme() {
+  const isDark = document.body.classList.toggle('dark');
+  document.getElementById('themeBtn').textContent = isDark ? '🌙' : '☀️';
+  localStorage.setItem('csb_theme', isDark ? 'dark' : 'light');
+}
+if (localStorage.getItem('csb_theme') === 'dark') {
+  document.body.classList.add('dark');
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('themeBtn').textContent = '🌙';
+  });
+}
+
+/* ─── Init ────────────────────────────────────── */
+renderRecentTags();
+renderBoard();
+</script>
+</body>
+</html>
