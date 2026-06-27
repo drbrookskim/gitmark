@@ -277,10 +277,11 @@
     #theme-toggle {
       position: fixed; top: 10px; right: 12px; z-index: 100;
       background: none; border: none; cursor: pointer;
-      font-size: 16px; padding: 4px 6px;
+      padding: 5px;
       border-radius: 6px;
       transition: background .15s;
-      line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      image-rendering: pixelated;
     }
     #theme-toggle:hover { background: var(--bg-elevated); }
 
@@ -402,7 +403,7 @@
   </style>
 </head>
 <body>
-<button id="theme-toggle" title="테마 전환">☀️</button>
+<button id="theme-toggle" title="테마 전환"></button>
 <div id="app"><div style="text-align:center;padding:60px;color:var(--text-dim);font-size:11px;">로딩 중...</div></div>
 <script>
 'use strict';
@@ -516,14 +517,40 @@ async function getOrCreateProfile(user) {
 }
 
 // ── 테마 ────────────────────────────────────────────────────────────
+var _SVG_SUN = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="18" height="18" shape-rendering="crispEdges">' +
+  '<rect x="7" y="0" width="2" height="3" fill="#f59e0b"/>' +
+  '<rect x="7" y="13" width="2" height="3" fill="#f59e0b"/>' +
+  '<rect x="0" y="7" width="3" height="2" fill="#f59e0b"/>' +
+  '<rect x="13" y="7" width="3" height="2" fill="#f59e0b"/>' +
+  '<rect x="2" y="2" width="2" height="2" fill="#f59e0b"/>' +
+  '<rect x="12" y="2" width="2" height="2" fill="#f59e0b"/>' +
+  '<rect x="2" y="12" width="2" height="2" fill="#f59e0b"/>' +
+  '<rect x="12" y="12" width="2" height="2" fill="#f59e0b"/>' +
+  '<rect x="5" y="5" width="6" height="6" fill="#f59e0b"/>' +
+  '<rect x="6" y="4" width="4" height="1" fill="#f59e0b"/>' +
+  '<rect x="6" y="11" width="4" height="1" fill="#f59e0b"/>' +
+  '<rect x="4" y="6" width="1" height="4" fill="#f59e0b"/>' +
+  '<rect x="11" y="6" width="1" height="4" fill="#f59e0b"/>' +
+  '</svg>';
+
+var _SVG_MOON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="18" height="18" shape-rendering="crispEdges">' +
+  '<rect x="5" y="0" width="5" height="2" fill="#94a3b8"/>' +
+  '<rect x="3" y="2" width="5" height="2" fill="#94a3b8"/>' +
+  '<rect x="1" y="4" width="5" height="2" fill="#94a3b8"/>' +
+  '<rect x="1" y="6" width="3" height="4" fill="#94a3b8"/>' +
+  '<rect x="1" y="10" width="5" height="2" fill="#94a3b8"/>' +
+  '<rect x="3" y="12" width="5" height="2" fill="#94a3b8"/>' +
+  '<rect x="5" y="14" width="5" height="2" fill="#94a3b8"/>' +
+  '</svg>';
+
 function applyTheme(t) {
   var btn = document.getElementById('theme-toggle');
   if (t === 'dark') {
     document.body.classList.add('dark');
-    if (btn) btn.textContent = '🌙';
+    if (btn) btn.innerHTML = _SVG_MOON;
   } else {
     document.body.classList.remove('dark');
-    if (btn) btn.textContent = '☀️';
+    if (btn) btn.innerHTML = _SVG_SUN;
   }
 }
 
