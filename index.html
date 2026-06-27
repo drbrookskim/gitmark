@@ -658,6 +658,7 @@ function typewriterReveal(el, txt, onDone) {
 
 // ── 피드 탭 상태 ─────────────────────────────────────────────────────
 var _feedTab = 'casual';
+var _cachedMe = null;
 
 // ── 라우터 (해시 기반) ───────────────────────────────────────────────
 var R = {
@@ -667,33 +668,44 @@ var R = {
     stopOpacityLoop();
     var app = document.getElementById('app');
     if (!app) return;
-    app.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:var(--text-dim);font-family:\'JetBrains Mono\',monospace;font-size:11px;">loading…</div>';
 
-    var { data: { session } } = await SB.auth.getSession();
-    if (!session) { app.innerHTML = ''; app.appendChild(authPage()); return; }
+    // 첫 로드 시에만 로딩 표시
+    if (!_cachedMe) {
+      app.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:var(--text-dim);font-family:\'JetBrains Mono\',monospace;font-size:11px;">loading…</div>';
+    }
 
-    var profile = await getOrCreateProfile(session.user);
-    var meta = session.user.user_metadata || {};
-    var me = {
-      uid: session.user.id,
-      nick: profile.nick,
-      pseudo: profile.pseudo,
-      avatar_url: meta.avatar_url || meta.picture || null,
-      google_name: meta.full_name || meta.name || null,
-      email: session.user.email || null
-    };
-    app.innerHTML = '';
+    if (!_cachedMe) {
+      var { data: { session } } = await SB.auth.getSession();
+      if (!session) { app.innerHTML = ''; app.appendChild(authPage()); return; }
+      var profile = await getOrCreateProfile(session.user);
+      var meta = session.user.user_metadata || {};
+      _cachedMe = {
+        uid: session.user.id,
+        nick: profile.nick,
+        pseudo: profile.pseudo,
+        avatar_url: meta.avatar_url || meta.picture || null,
+        google_name: meta.full_name || meta.name || null,
+        email: session.user.email || null
+      };
+    }
+
+    var me = _cachedMe;
     var p = R.path();
-    if (p === '/write') app.appendChild(writePage(me));
-    else if (p.indexOf('/post/') === 0) app.appendChild(await detailPage(p.slice(6), me));
-    else if (p === '/my') app.appendChild(await myPage(me));
-    else if (p === '/profile') app.appendChild(await profilePage(me));
-    else app.appendChild(await feedPage(me));
+    var newPage;
+    if (p === '/write') newPage = writePage(me);
+    else if (p.indexOf('/post/') === 0) newPage = await detailPage(p.slice(6), me);
+    else if (p === '/my') newPage = await myPage(me);
+    else if (p === '/profile') newPage = await profilePage(me);
+    else newPage = await feedPage(me);
+
+    // 콘텐츠가 준비된 후에만 화면 교체
+    app.innerHTML = '';
+    app.appendChild(newPage);
   }
 };
 window.addEventListener('hashchange', function() { R.render(); });
 SB.auth.onAuthStateChange(function(event) {
-  if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') R.render();
+  if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') { _cachedMe = null; R.render(); }
 });
 
 // ── 공통: 탭바 ──────────────────────────────────────────────────────
