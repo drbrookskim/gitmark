@@ -124,6 +124,8 @@
       .tab-bar button {
         padding: 12px 8px; border-radius: 14px; width: 100%;
       }
+      .tab-hidden { display: flex !important; }
+      .feed-tab-switcher { display: none !important; }
     }
     .sticky-header {
       position: sticky; top: 0; z-index: 10;
@@ -324,6 +326,37 @@
     }
     .branch-tile-wrap { flex: 1; min-width: 0; }
     .tile.info-tile { border-color: var(--border-sub); }
+    /* ── 모바일 피드 탭 스타일 ──────────────────────────────── */
+    .feed-tab-switcher { display: none; }
+    @media (max-width: 767px) {
+      .feed-tab-switcher {
+        display: flex;
+        position: sticky; top: 45px; z-index: 10;
+        background: var(--bg);
+        border-bottom: 0.5px solid var(--border);
+      }
+      .feed-tab-btn {
+        flex: 1; padding: 9px 0;
+        background: none; border: none; border-bottom: 2px solid transparent;
+        cursor: pointer;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px; color: var(--text-dim); letter-spacing: .05em;
+        transition: color .15s, border-color .15s;
+      }
+      .feed-tab-btn.active { color: var(--text); border-bottom-color: var(--text); }
+      .feed-branch-header { display: none; }
+      .feed-branch-wrap {
+        border: none; border-radius: 0; margin: 0 0 90px;
+        padding: 6px 0 6px;
+      }
+      .feed-branch-wrap::before { display: none; }
+      .branch-row::before { display: none; }
+      .branch-row.casual, .branch-row.info {
+        padding-left: 10px; padding-right: 10px;
+        justify-content: flex-start;
+      }
+      .tab-hidden { display: none !important; }
+    }
     .info-url-bar {
       display: block; padding: 5px 12px; font-size: 9px;
       font-family: 'JetBrains Mono', monospace;
@@ -778,6 +811,18 @@ async function feedPage(me) {
     empty.innerHTML = '<div style="margin-bottom:14px;">아직 아무도 다녀가지 않았어요.</div><button onclick="R.go(\'/write\')" style="font-size:11px;color:var(--text-muted);background:none;border:none;cursor:pointer;">첫 번째 흔적을 남겨보세요 →</button>';
     wrap.appendChild(empty);
   } else {
+    var tabSwitcher = document.createElement('div');
+    tabSwitcher.className = 'feed-tab-switcher';
+    var btnCasual = document.createElement('button');
+    btnCasual.className = 'feed-tab-btn active';
+    btnCasual.textContent = 'casual mark';
+    var btnLink = document.createElement('button');
+    btnLink.className = 'feed-tab-btn';
+    btnLink.textContent = 'link mark';
+    tabSwitcher.appendChild(btnCasual);
+    tabSwitcher.appendChild(btnLink);
+    wrap.appendChild(tabSwitcher);
+
     var colHdr = document.createElement('div');
     colHdr.className = 'feed-branch-header';
     colHdr.innerHTML = '<div class="fbh-left">casual mark ←</div><div class="fbh-sep"></div><div class="fbh-right">→ link mark</div>';
@@ -785,9 +830,22 @@ async function feedPage(me) {
     var indexWrap = document.createElement('div');
     indexWrap.className = 'feed-branch-wrap';
     posts.forEach(function(post) {
-      indexWrap.appendChild(makeCard(post, me, null, likedSet, avatarMap));
+      var card = makeCard(post, me, null, likedSet, avatarMap);
+      if (card.classList.contains('info')) card.classList.add('tab-hidden');
+      indexWrap.appendChild(card);
     });
     wrap.appendChild(indexWrap);
+
+    btnCasual.onclick = function() {
+      btnCasual.classList.add('active'); btnLink.classList.remove('active');
+      indexWrap.querySelectorAll('.branch-row.info').forEach(function(r){ r.classList.add('tab-hidden'); });
+      indexWrap.querySelectorAll('.branch-row.casual').forEach(function(r){ r.classList.remove('tab-hidden'); });
+    };
+    btnLink.onclick = function() {
+      btnLink.classList.add('active'); btnCasual.classList.remove('active');
+      indexWrap.querySelectorAll('.branch-row.casual').forEach(function(r){ r.classList.add('tab-hidden'); });
+      indexWrap.querySelectorAll('.branch-row.info').forEach(function(r){ r.classList.remove('tab-hidden'); });
+    };
   }
   wrap.appendChild(tabBar('/', me));
   return wrap;
