@@ -318,7 +318,7 @@
       background: var(--bg-surface);
       transition: clip-path .42s cubic-bezier(.4,0,.2,1);
     }
-    .tile { transition: transform .12s, opacity .9s ease; }
+    .tile { transition: transform .12s; }
   </style>
 </head>
 <body>
@@ -529,29 +529,7 @@ function scatterAndDelete(tile, onDone) {
   });
 }
 
-// C: 실시간 opacity 감쇠 — rAF 루프로 시간에 따라 카드가 서서히 투명해짐
-var _opRafId = null;
-function liveOpacity(at) {
-  var h = (Date.now() - at) / 3600000;
-  if (h < 1)  return 1;
-  if (h < 6)  return 0.88;
-  if (h < 24) return 0.72;
-  if (h < 72) return 0.58;
-  return 0.46;
-}
-function startOpacityLoop() {
-  if (_opRafId) return;
-  function loop() {
-    document.querySelectorAll('.tile[data-at]').forEach(function(el) {
-      el.style.opacity = liveOpacity(+el.dataset.at);
-    });
-    _opRafId = requestAnimationFrame(loop);
-  }
-  _opRafId = requestAnimationFrame(loop);
-}
-function stopOpacityLoop() {
-  if (_opRafId) { cancelAnimationFrame(_opRafId); _opRafId = null; }
-}
+function stopOpacityLoop() {} // no-op (opacity loop removed)
 
 // D: 타이핑 리듬 출현 — 자연스러운 타이핑 패턴으로 글자가 한 자씩 등장
 function typewriterReveal(el, txt) {
@@ -780,7 +758,7 @@ async function feedPage(me) {
   } else {
     var colHdr = document.createElement('div');
     colHdr.className = 'feed-branch-header';
-    colHdr.innerHTML = '<div class="fbh-left">casual ←</div><div class="fbh-sep"></div><div class="fbh-right">→ info</div>';
+    colHdr.innerHTML = '<div class="fbh-left">casual mark ←</div><div class="fbh-sep"></div><div class="fbh-right">→ link mark</div>';
     wrap.appendChild(colHdr);
     var indexWrap = document.createElement('div');
     indexWrap.className = 'feed-branch-wrap';
@@ -790,19 +768,9 @@ async function feedPage(me) {
     wrap.appendChild(indexWrap);
   }
   wrap.appendChild(tabBar('/', me));
-  requestAnimationFrame(startOpacityLoop);
   return wrap;
 }
 
-function postOpacity(post) {
-  if (post.del) return 0.45;
-  var h = (Date.now() - (post.upd || post.at)) / 3600000;
-  if (h < 1) return 1;
-  if (h < 6) return 0.88;
-  if (h < 24) return 0.72;
-  if (h < 72) return 0.58;
-  return 0.46;
-}
 
 function makeCard(post, me, idx, likedSet, avatarMap) {
   var branchMode = (idx == null);
@@ -829,7 +797,6 @@ function makeCard(post, me, idx, likedSet, avatarMap) {
   tile.className = 'tile' + (isInfo ? ' info-tile' : '');
 
   if (post.del) {
-    tile.style.opacity = postOpacity(post);
     tile.innerHTML = [
       '<div class="tile-del-head"><span>╳</span><span class="tile-del-sub">삭제됨 · '+absTime(post.del)+'</span></div>',
       '<div class="tile-del-rows">이 흔적은 지워졌습니다</div>'
@@ -841,8 +808,6 @@ function makeCard(post, me, idx, likedSet, avatarMap) {
     return row;
   }
 
-  tile.dataset.at = String(post.upd || post.at);
-  tile.style.opacity = liveOpacity(post.upd || post.at);
 
   var infoBar = '';
   if (isInfo) {
@@ -1179,12 +1144,13 @@ async function detailPage(pid, me) {
         '<div style="flex:1;"><div style="display:flex;align-items:baseline;gap:6px;margin-bottom:4px;">',
         '<span style="font-size:12px;color:var(--text);">'+nickHtml(c.nick,c.pseudo)+'</span>',
         '<span style="font-size:10px;color:var(--text-dim);">· '+relTime(c.at)+'</span></div>',
-        '<div style="font-size:12px;color:var(--text-body);line-height:1.55;word-break:break-word;">'+esc(c.txt)+'</div>',
+        '<div id="ctxt-'+c.id+'" style="font-size:12px;color:var(--text-body);line-height:1.55;word-break:break-word;min-height:1.2em;"></div>',
         '<div style="display:flex;gap:10px;margin-top:6px;">',
         '<button class="btn-ghost" id="rep-'+c.id+'">답글</button>',
         isOwner ? '<button class="del-btn" style="margin-left:0;" id="dc-'+c.id+'">삭제</button>' : '',
         '</div></div></div></div>'
       ].join('');
+      typewriterReveal(el.querySelector('#ctxt-'+c.id), c.txt);
       el.querySelector('#rep-'+c.id).onclick = function() { replyTo = c.id; inp.placeholder='@'+c.nick+'에 답글'; inp.focus(); };
       if (isOwner) {
         el.querySelector('#dc-'+c.id).onclick = (function(cid) { return function() {
@@ -1217,10 +1183,11 @@ async function detailPage(pid, me) {
       '<div style="flex:1;"><div style="display:flex;align-items:baseline;gap:6px;margin-bottom:3px;">',
       '<span style="font-size:11px;color:var(--text);">'+nickHtml(r.nick,r.pseudo)+'</span>',
       '<span style="font-size:10px;color:var(--text-dim);">· '+relTime(r.at)+'</span></div>',
-      '<div style="font-size:11px;color:var(--text-faint);line-height:1.5;word-break:break-word;">'+esc(r.txt)+'</div>',
+      '<div id="rtxt-'+r.id+'" style="font-size:11px;color:var(--text-faint);line-height:1.5;word-break:break-word;min-height:1.1em;"></div>',
       isOwner ? '<button class="del-btn" style="margin-left:0;margin-top:4px;" id="dr-'+r.id+'">삭제</button>' : '',
       '</div></div></div>'
     ].join('');
+    typewriterReveal(el.querySelector('#rtxt-'+r.id), r.txt);
     if (isOwner) {
       el.querySelector('#dr-'+r.id).onclick = (function(rid) { return function() {
         gModal('이 댓글을 삭제할까요?', async function() {
