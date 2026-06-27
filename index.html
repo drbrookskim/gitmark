@@ -253,14 +253,15 @@
     }
 
     /* ── 테마 토글 버튼 ─────────────────────────────────────────── */
-    #theme-toggle { display: none; }
-    .theme-btn {
+    #theme-toggle {
+      position: fixed; top: 10px; right: 12px; z-index: 100;
       background: none; border: none; cursor: pointer;
       font-size: 16px; padding: 4px 6px;
-      border-radius: 6px; line-height: 1;
-      transition: background .15s; flex-shrink: 0;
+      border-radius: 6px;
+      transition: background .15s;
+      line-height: 1;
     }
-    .theme-btn:hover { background: var(--bg-elevated); }
+    #theme-toggle:hover { background: var(--bg-elevated); }
 
     /* ── 분기 타임라인 피드 ──────────────────────────────────── */
     .feed-branch-header {
@@ -432,29 +433,21 @@ async function getOrCreateProfile(user) {
     return data;
   }
   var nick = meta.full_name || meta.name || ('객' + Math.floor(Math.random() * 9000 + 1000));
-  var profile = { id: user.id, nick: nick, pseudo: false, avatar_url: avatarUrl };
+  var profile = { id: user.id, email: user.email || '', nick: nick, pseudo: false, avatar_url: avatarUrl };
   await SB.from('profiles').upsert(profile);
   return profile;
 }
 
 // ── 테마 ────────────────────────────────────────────────────────────
 function applyTheme(t) {
-  var icon = t === 'dark' ? '🌙' : '☀️';
-  if (t === 'dark') document.body.classList.add('dark');
-  else document.body.classList.remove('dark');
-  document.querySelectorAll('.theme-btn').forEach(function(b){ b.textContent = icon; });
-}
-
-function mkThemeBtn() {
-  var btn = document.createElement('button');
-  btn.className = 'theme-btn';
-  btn.title = '테마 전환';
-  btn.textContent = document.body.classList.contains('dark') ? '🌙' : '☀️';
-  btn.onclick = function() {
-    var next = S.theme() === 'dark' ? 'light' : 'dark';
-    S.setTheme(next); applyTheme(next);
-  };
-  return btn;
+  var btn = document.getElementById('theme-toggle');
+  if (t === 'dark') {
+    document.body.classList.add('dark');
+    if (btn) btn.textContent = '🌙';
+  } else {
+    document.body.classList.remove('dark');
+    if (btn) btn.textContent = '☀️';
+  }
 }
 
 document.getElementById('theme-toggle').onclick = function() {
@@ -738,7 +731,6 @@ async function feedPage(me) {
   var hdr = document.createElement('div');
   hdr.className = 'sticky-header';
   hdr.innerHTML = '<span style="font-size:13px;letter-spacing:.22em;">gitmark</span>';
-  hdr.appendChild(mkThemeBtn());
   var writeBtn = document.createElement('button');
   writeBtn.className = 'write-pill';
   writeBtn.textContent = '+ mark';
@@ -939,7 +931,6 @@ function writePage(me) {
     R.go('/');
   };
   hdr.appendChild(cancelBtn);
-  hdr.appendChild(mkThemeBtn());
   hdr.appendChild(submitBtn);
   wrap.appendChild(hdr);
 
@@ -1022,7 +1013,6 @@ async function detailPage(pid, me) {
   backBtn.textContent = '← 피드로';
   backBtn.onclick = function() { R.go('/'); };
   hdr.appendChild(backBtn);
-  hdr.appendChild(mkThemeBtn());
   wrap.appendChild(hdr);
 
   var [postRes, likeRes, cmtRes] = await Promise.all([
@@ -1278,7 +1268,6 @@ async function profilePage(me) {
   var hdr = document.createElement('div');
   hdr.className = 'sticky-header';
   hdr.innerHTML = '<span style="font-size:13px;letter-spacing:.05em;">마이페이지</span>';
-  hdr.appendChild(mkThemeBtn());
   var logoutBtn = document.createElement('button');
   logoutBtn.className = 'btn-ghost';
   logoutBtn.textContent = '로그아웃';
@@ -1363,7 +1352,6 @@ async function myPage(me) {
   var hdr = document.createElement('div');
   hdr.className = 'sticky-header';
   hdr.innerHTML = '<span style="font-size:13px;letter-spacing:.05em;">내 흔적</span>';
-  hdr.appendChild(mkThemeBtn());
   wrap.appendChild(hdr);
 
   var now60m = Date.now() - 60000;
