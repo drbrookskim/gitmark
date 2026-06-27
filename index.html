@@ -352,7 +352,7 @@
       }
       /* casual 탭: 좌측 라인만 */
       .feed-branch-wrap::before {
-        left: 18px; transform: none; width: 1px;
+        left: 18px; transform: none; width: 1px; z-index: 0;
       }
       .feed-branch-wrap::after { display: none; }
       /* link 탭 활성화 시: 우측 라인만 */
@@ -360,7 +360,10 @@
       .feed-branch-wrap.tab-link-active::after {
         content: ''; position: absolute; right: 18px; top: 0; bottom: 0;
         width: 1px; background: var(--border); pointer-events: none; display: block;
+        z-index: 0;
       }
+      /* 타일을 라인 위로 */
+      .branch-row { position: relative; z-index: 1; }
       .branch-row.casual {
         padding-left: 36px; padding-right: 10px;
         justify-content: flex-start;
