@@ -71,7 +71,11 @@
       position: relative; z-index: 1;
     }
     @media (min-width: 768px) {
-      #app { max-width: 960px; }
+      #app {
+        max-width: 960px;
+        margin-left: max(108px, calc((100vw - 960px) / 2));
+        margin-right: auto;
+      }
     }
     input, textarea, button {
       font-family: 'JetBrains Mono', 'Courier New', monospace;
@@ -118,6 +122,18 @@
     .tab-bar button:hover { background: var(--bg-surface); }
     .tab-bar button i { font-size: 20px; }
     .tab-bar button span { font-size: 10px; }
+    @media (min-width: 768px) {
+      .tab-bar {
+        bottom: auto; top: 50%;
+        left: 20px; transform: translateY(-50%);
+        flex-direction: column;
+        border-radius: 20px;
+        width: 72px; padding: 6px 4px; gap: 2px;
+      }
+      .tab-bar button {
+        padding: 12px 8px; border-radius: 14px; width: 100%;
+      }
+    }
     .sticky-header {
       position: sticky; top: 0; z-index: 10;
       background: var(--bg); border-bottom: 0.5px solid var(--border);
