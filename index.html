@@ -100,26 +100,17 @@
     .input-field:focus { border-color: var(--text-muted); }
     .input-field::placeholder { color: var(--text-dim); }
     .tab-bar {
-      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-      background: var(--bg);
-      border: 0.5px solid var(--border);
-      border-radius: 50px;
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 680px;
+      background: var(--bg); border-top: 0.5px solid var(--border);
       display: flex; z-index: 20;
-      padding: 4px;
-      gap: 2px;
-      box-shadow: 0 4px 24px rgba(0,0,0,.08);
-    }
-    body.dark .tab-bar {
-      box-shadow: 0 4px 24px rgba(0,0,0,.4);
     }
     .tab-bar button {
-      flex: none; padding: 10px 20px;
+      flex: 1; padding: 10px 0 13px;
       background: none; border: none; cursor: pointer;
       display: flex; flex-direction: column; align-items: center; gap: 3px;
-      border-radius: 40px;
-      transition: color .15s, background .15s;
+      transition: color .15s;
     }
-    .tab-bar button:hover { background: var(--bg-surface); }
     .tab-bar button i { font-size: 20px; }
     .tab-bar button span { font-size: 10px; }
     @media (min-width: 768px) {
