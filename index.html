@@ -263,43 +263,62 @@
     }
     #theme-toggle:hover { background: var(--bg-elevated); }
 
-    /* ── 분기 타임라인 피드 ──────────────────────────────────── */
-    .feed-branch-header {
-      display: grid; grid-template-columns: 1fr 0.5px 1fr;
-      background: var(--bg-surface); border-bottom: 0.5px solid var(--border);
-      font-size: 9px; color: var(--text-dim);
-      font-family: 'JetBrains Mono', monospace; letter-spacing: .05em;
-      position: sticky; top: 45px; z-index: 9;
+    /* ── 스레드 피드 ──────────────────────────────────────── */
+    .feed-thread-wrap {
+      border: 0.5px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+      margin: 16px 14px 90px;
     }
-    .fbh-left  { padding: 5px 12px; text-align: right; }
-    .fbh-sep   { background: var(--border); }
-    .fbh-right { padding: 5px 12px; }
-    .feed-branch-wrap {
-      position: relative; padding: 14px 0 0;
+    .thread-item {
+      display: flex; gap: 12px;
+      padding: 14px 16px 12px;
+      border-bottom: 0.5px solid var(--border);
+      cursor: pointer;
+      transition: background .1s;
     }
-    .feed-branch-wrap::before {
-      content: ''; position: absolute; left: 50%; top: 0; bottom: 0;
-      width: 2px; background: var(--border);
-      transform: translateX(-50%); pointer-events: none;
+    .thread-item:last-child { border-bottom: none; }
+    .thread-item:hover { background: var(--bg-surface); }
+    .thread-left {
+      display: flex; flex-direction: column;
+      align-items: center; flex-shrink: 0; width: 36px;
     }
-    .branch-row {
-      display: flex; margin-bottom: 10px; position: relative;
-    }
-    .branch-row::before {
-      content: ''; position: absolute; left: 50%; top: 15px;
-      width: 8px; height: 8px; border-radius: 50%;
+    .thread-line {
+      flex: 1; width: 1.5px;
       background: var(--border);
-      transform: translateX(-50%); z-index: 2;
+      margin-top: 5px; min-height: 12px;
     }
-    .branch-row.casual {
-      justify-content: flex-start;
-      padding-left: 14px; padding-right: calc(50% + 10px);
+    .thread-item:last-child .thread-line { visibility: hidden; }
+    .thread-right { flex: 1; min-width: 0; }
+    .thread-meta {
+      display: flex; align-items: baseline;
+      gap: 5px; margin-bottom: 5px; flex-wrap: wrap;
     }
-    .branch-row.info {
-      justify-content: flex-end;
-      padding-right: 14px; padding-left: calc(50% + 10px);
+    .thread-nick { font-size: 12px; font-weight: 500; color: var(--text); }
+    .thread-time { font-size: 10px; color: var(--text-dim); }
+    .thread-txt {
+      font-size: 13px; color: var(--text-body);
+      line-height: 1.65; word-break: break-word;
+      margin-bottom: 10px;
     }
-    .branch-tile-wrap { flex: 1; min-width: 0; }
+    .thread-url-bar {
+      display: block; font-size: 10px; color: var(--text-dim);
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--bg-surface);
+      border: 0.5px solid var(--border); border-radius: 6px;
+      padding: 4px 10px; margin-bottom: 8px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      text-decoration: none;
+    }
+    .thread-actions {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 11px; color: var(--text-dim);
+    }
+    .thread-more-btn {
+      background: none; border: none; cursor: pointer;
+      font-size: 10px; color: var(--text-dim); padding: 0 0 8px;
+      font-family: 'JetBrains Mono', monospace; display: block;
+    }
     .tile.info-tile { border-color: var(--border-sub); }
     .info-url-bar {
       display: block; padding: 5px 12px; font-size: 9px;
@@ -755,12 +774,8 @@ async function feedPage(me) {
     empty.innerHTML = '<div style="margin-bottom:14px;">아직 아무도 다녀가지 않았어요.</div><button onclick="R.go(\'/write\')" style="font-size:11px;color:var(--text-muted);background:none;border:none;cursor:pointer;">첫 번째 흔적을 남겨보세요 →</button>';
     wrap.appendChild(empty);
   } else {
-    var colHdr = document.createElement('div');
-    colHdr.className = 'feed-branch-header';
-    colHdr.innerHTML = '<div class="fbh-left">casual mark ←</div><div class="fbh-sep"></div><div class="fbh-right">→ link mark</div>';
-    wrap.appendChild(colHdr);
     var indexWrap = document.createElement('div');
-    indexWrap.className = 'feed-branch-wrap';
+    indexWrap.className = 'feed-thread-wrap';
     posts.forEach(function(post) {
       indexWrap.appendChild(makeCard(post, me, null, likedSet, avatarMap));
     });
@@ -776,48 +791,125 @@ function makeCard(post, me, idx, likedSet, avatarMap) {
   var url = branchMode ? extractUrl(post.txt) : null;
   var isInfo = !!url;
 
+  // ── 스레드 모드 (피드) ───────────────────────────────────────────
+  if (branchMode) {
+    var row = document.createElement('div');
+    row.className = 'thread-item';
+
+    // 삭제된 포스트
+    if (post.del) {
+      row.innerHTML = [
+        '<div class="thread-left"><div style="width:34px;height:34px;border-radius:50%;background:var(--bg-elevated);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--text-dim);">╳</div><div class="thread-line"></div></div>',
+        '<div class="thread-right" style="padding-top:8px;">',
+        '<div style="font-size:11px;color:var(--text-dim);font-style:italic;">삭제됨 · '+absTime(post.del)+'</div>',
+        '</div>'
+      ].join('');
+      var remain = 60000 - (Date.now() - post.del);
+      if (remain > 0) setTimeout(function(){ if(row.parentNode) row.parentNode.removeChild(row); }, remain);
+      return row;
+    }
+
+    var liked = likedSet ? likedSet.has(post.id) : false;
+    var avatarHtml = (avatarMap && avatarMap[post.uid])
+      ? '<img src="'+esc(avatarMap[post.uid])+'" referrerpolicy="no-referrer" style="width:34px;height:34px;border-radius:50%;object-fit:cover;">'
+      : avatar(post.nick, 34);
+    var urlBarHtml = '';
+    if (isInfo) {
+      var disp = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+      if (disp.length > 48) disp = disp.slice(0, 48) + '…';
+      urlBarHtml = '<a class="thread-url-bar" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">🔗 '+esc(disp)+'</a>';
+    }
+
+    row.innerHTML = [
+      '<div class="thread-left">',
+      '<div>'+avatarHtml+'</div>',
+      '<div class="thread-line"></div>',
+      '</div>',
+      '<div class="thread-right">',
+      '<div class="thread-meta">',
+      '<span class="thread-nick">'+nickHtml(post.nick, post.pseudo)+'</span>',
+      '<span class="thread-time">'+relTime(post.upd||post.at)+'</span>',
+      '</div>',
+      urlBarHtml,
+      '<div class="thread-txt body-font" id="txt-'+post.id+'" style="-webkit-line-clamp:5;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden;">'+linkify(post.txt)+'</div>',
+      post.txt.length > 120 ? '<button class="thread-more-btn" id="more-'+post.id+'">더 보기 →</button>' : '',
+      '<div class="thread-actions">',
+      '<button class="like-btn'+(liked?' liked':'')+'" id="lbtn-'+post.id+'"><span id="lico-'+post.id+'">'+(liked?'♥':'♡')+'</span><span id="lcnt-'+post.id+'">'+(post.likes_count||0)+'</span></button>',
+      '<span style="display:flex;align-items:center;gap:3px;"><i class="ti ti-message" style="font-size:12px;"></i>'+(post.comments_count||0)+'</span>',
+      me.uid===post.uid ? '<button class="del-btn" id="delbtn-'+post.id+'">삭제</button>' : '',
+      '</div>',
+      '</div>'
+    ].join('');
+
+    row.querySelector('#lbtn-'+post.id).onclick = async function(e) {
+      e.stopPropagation();
+      var btn = this, wasLiked = btn.classList.contains('liked');
+      btn.classList.toggle('liked', !wasLiked);
+      document.getElementById('lico-'+post.id).textContent = !wasLiked ? '♥' : '♡';
+      var cntEl = document.getElementById('lcnt-'+post.id);
+      cntEl.textContent = !wasLiked ? (parseInt(cntEl.textContent)||0)+1 : Math.max(0,(parseInt(cntEl.textContent)||0)-1);
+      var { data: nowLiked } = await SB.rpc('toggle_like', { p_post_id: post.id, p_uid: me.uid });
+      if (typeof nowLiked === 'boolean' && nowLiked !== !wasLiked) {
+        btn.classList.toggle('liked', nowLiked);
+        document.getElementById('lico-'+post.id).textContent = nowLiked ? '♥' : '♡';
+      }
+    };
+    var moreBtn = row.querySelector('#more-'+post.id);
+    if (moreBtn) {
+      var expanded = false;
+      moreBtn.onclick = function(e) {
+        e.stopPropagation();
+        expanded = !expanded;
+        var txtEl = document.getElementById('txt-'+post.id);
+        if (expanded) { txtEl.style.webkitLineClamp='unset'; txtEl.style.display='block'; this.textContent='접기 ↑'; }
+        else { txtEl.style.webkitLineClamp='5'; txtEl.style.display='-webkit-box'; this.textContent='더 보기 →'; }
+      };
+    }
+    if (me.uid===post.uid) {
+      row.querySelector('#delbtn-'+post.id).onclick = function(e) {
+        e.stopPropagation();
+        var pid = post.id;
+        gModal('이 흔적을 지울까요?<br><span style="font-size:10px;color:var(--text-dim);">60초 후 완전히 사라집니다</span>', function() {
+          scatterAndDelete(row, async function() {
+            await SB.from('posts').update({ del: Date.now() }).eq('id', pid);
+            R.render();
+          });
+        }, '삭제');
+      };
+    }
+    row.onclick = function(e) {
+      if (!e.target.closest('button,a')) inkTransition(e.clientX, e.clientY, function() { R.go('/post/'+post.id); });
+    };
+    return row;
+  }
+
+  // ── 카드 모드 (검색 결과 등) ──────────────────────────────────────
   var row = document.createElement('div');
   var tileWrap = document.createElement('div');
-
-  if (branchMode) {
-    row.className = 'branch-row ' + (isInfo ? 'info' : 'casual');
-    tileWrap.className = 'branch-tile-wrap';
-  } else {
-    row.className = 'card-row';
-    var idxEl = document.createElement('div');
-    idxEl.className = 'card-idx';
-    idxEl.textContent = String(idx).padStart(2, '0');
-    row.appendChild(idxEl);
-    tileWrap.className = 'card-tile-wrap';
-  }
+  row.className = 'card-row';
+  var idxEl = document.createElement('div');
+  idxEl.className = 'card-idx';
+  idxEl.textContent = String(idx).padStart(2, '0');
+  row.appendChild(idxEl);
+  tileWrap.className = 'card-tile-wrap';
 
   var c = nick2color(post.nick);
   var tile = document.createElement('div');
-  tile.className = 'tile' + (isInfo ? ' info-tile' : '');
+  tile.className = 'tile';
 
   if (post.del) {
     tile.innerHTML = [
       '<div class="tile-del-head"><span>╳</span><span class="tile-del-sub">삭제됨 · '+absTime(post.del)+'</span></div>',
       '<div class="tile-del-rows">이 흔적은 지워졌습니다</div>'
     ].join('');
-    tileWrap.appendChild(tile);
-    row.appendChild(tileWrap);
+    tileWrap.appendChild(tile); row.appendChild(tileWrap);
     var remain = 60000 - (Date.now() - post.del);
     if (remain > 0) setTimeout(function(){ if(row.parentNode) row.parentNode.removeChild(row); }, remain);
     return row;
   }
 
-
-  var infoBar = '';
-  if (isInfo) {
-    var disp = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
-    if (disp.length > 38) disp = disp.slice(0, 38) + '…';
-    infoBar = '<a class="info-url-bar" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">'+esc(disp)+'</a>';
-  }
-
   var liked = likedSet ? likedSet.has(post.id) : false;
   tile.innerHTML = [
-    infoBar,
     '<div class="tile-head">',
     '<div class="tile-txt body-font" id="txt-'+post.id+'" style="-webkit-line-clamp:3;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden;">'+linkify(post.txt)+'</div>',
     '<div class="tile-since">'+relTime(post.upd||post.at)+'</div>',
@@ -828,11 +920,8 @@ function makeCard(post, me, idx, likedSet, avatarMap) {
     '<span class="tile-row-icon">'+(avatarMap && avatarMap[post.uid] ? '<img src="'+esc(avatarMap[post.uid])+'" referrerpolicy="no-referrer" style="width:16px;height:16px;border-radius:50%;object-fit:cover;vertical-align:middle;">' : avatar(post.nick, 16))+'</span>',
     '<span class="tile-row-val">'+nickHtml(post.nick, post.pseudo)+'</span>',
     '<span class="tile-sep">·</span>',
-    '<button class="like-btn'+(liked?' liked':'')+'" id="lbtn-'+post.id+'">',
-    '<span id="lico-'+post.id+'">'+(liked?'♥':'♡')+'</span>',
-    '<span id="lcnt-'+post.id+'">'+(post.likes_count||0)+'</span>',
-    '</button>',
-    '<span style="display:flex;align-items:center;gap:3px;color:var(--text-dim);font-size:11px;"><i class="ti ti-message" aria-hidden="true" style="font-size:12px;"></i>'+(post.comments_count||0)+'</span>',
+    '<button class="like-btn'+(liked?' liked':'')+'" id="lbtn-'+post.id+'"><span id="lico-'+post.id+'">'+(liked?'♥':'♡')+'</span><span id="lcnt-'+post.id+'">'+(post.likes_count||0)+'</span></button>',
+    '<span style="display:flex;align-items:center;gap:3px;color:var(--text-dim);font-size:11px;"><i class="ti ti-message" style="font-size:12px;"></i>'+(post.comments_count||0)+'</span>',
     me.uid===post.uid ? '<button class="del-btn" id="delbtn-'+post.id+'">삭제</button>' : '',
     '</div>',
     '</div>'
@@ -840,8 +929,7 @@ function makeCard(post, me, idx, likedSet, avatarMap) {
 
   tile.querySelector('#lbtn-'+post.id).onclick = async function(e) {
     e.stopPropagation();
-    var btn = this;
-    var wasLiked = btn.classList.contains('liked');
+    var btn = this, wasLiked = btn.classList.contains('liked');
     btn.classList.toggle('liked', !wasLiked);
     document.getElementById('lico-'+post.id).textContent = !wasLiked ? '♥' : '♡';
     var cntEl = document.getElementById('lcnt-'+post.id);
@@ -856,18 +944,10 @@ function makeCard(post, me, idx, likedSet, avatarMap) {
   if (moreBtn) {
     var expanded = false;
     moreBtn.onclick = function(e) {
-      e.stopPropagation();
-      expanded = !expanded;
+      e.stopPropagation(); expanded = !expanded;
       var txtEl = document.getElementById('txt-'+post.id);
-      if (expanded) {
-        txtEl.style.webkitLineClamp = 'unset';
-        txtEl.style.display = 'block';
-        this.textContent = '접기 ↑';
-      } else {
-        txtEl.style.webkitLineClamp = '3';
-        txtEl.style.display = '-webkit-box';
-        this.textContent = '더 보기 →';
-      }
+      if (expanded) { txtEl.style.webkitLineClamp='unset'; txtEl.style.display='block'; this.textContent='접기 ↑'; }
+      else { txtEl.style.webkitLineClamp='3'; txtEl.style.display='-webkit-box'; this.textContent='더 보기 →'; }
     };
   }
   if (me.uid===post.uid) {
