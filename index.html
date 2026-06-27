@@ -416,15 +416,22 @@ async function getOrCreateProfile(user) {
   var avatarUrl = meta.avatar_url || meta.picture || null;
   var { data } = await SB.from('profiles').select('*').eq('id', user.id).maybeSingle();
   if (data) {
-    if (avatarUrl && data.avatar_url !== avatarUrl) {
-      await SB.from('profiles').update({ avatar_url: avatarUrl }).eq('id', user.id);
-      data.avatar_url = avatarUrl;
+    var updates = {};
+    if (avatarUrl && data.avatar_url !== avatarUrl) updates.avatar_url = avatarUrl;
+    // nick 컬럼이 비어있으면 구글 이름으로 채움
+    if (!data.nick) {
+      updates.nick = meta.full_name || meta.name || ('객' + Math.floor(Math.random() * 9000 + 1000));
+      updates.pseudo = false;
+    }
+    if (Object.keys(updates).length) {
+      await SB.from('profiles').update(updates).eq('id', user.id);
+      Object.assign(data, updates);
     }
     return data;
   }
   var nick = meta.full_name || meta.name || ('객' + Math.floor(Math.random() * 9000 + 1000));
   var profile = { id: user.id, nick: nick, pseudo: false, avatar_url: avatarUrl };
-  await SB.from('profiles').insert(profile);
+  await SB.from('profiles').update(profile).eq('id', user.id); // profiles row는 이미 존재(trigger생성)
   return profile;
 }
 
