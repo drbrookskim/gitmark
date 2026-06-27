@@ -70,6 +70,9 @@
       min-height: 100vh;
       position: relative; z-index: 1;
     }
+    @media (min-width: 768px) {
+      #app { max-width: 960px; }
+    }
     input, textarea, button {
       font-family: 'JetBrains Mono', 'Courier New', monospace;
     }
@@ -278,7 +281,7 @@
       position: relative; padding: 14px 0 14px;
       border: 0.5px solid var(--border);
       border-radius: 20px;
-      margin: 12px 14px 90px;
+      margin: 12px 4px 90px;
       overflow: hidden;
     }
     .feed-branch-wrap::before {
