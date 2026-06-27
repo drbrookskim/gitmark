@@ -344,19 +344,22 @@
         transition: color .15s, border-color .15s;
       }
       .feed-tab-btn.active { color: var(--text); border-bottom-color: var(--text); }
+      .sticky-header { padding-right: 48px; }
       .feed-branch-header { display: none; }
       .feed-branch-wrap {
         border: none; border-radius: 0; margin: 0 0 90px;
         padding: 6px 0 6px;
       }
-      /* casual: 좌측 라인 */
+      /* casual 탭: 좌측 라인만 */
       .feed-branch-wrap::before {
         left: 18px; transform: none; width: 1px;
       }
-      /* link: 우측 라인 */
-      .feed-branch-wrap::after {
+      .feed-branch-wrap::after { display: none; }
+      /* link 탭 활성화 시: 우측 라인만 */
+      .feed-branch-wrap.tab-link-active::before { display: none; }
+      .feed-branch-wrap.tab-link-active::after {
         content: ''; position: absolute; right: 18px; top: 0; bottom: 0;
-        width: 1px; background: var(--border); pointer-events: none;
+        width: 1px; background: var(--border); pointer-events: none; display: block;
       }
       .branch-row.casual {
         padding-left: 36px; padding-right: 10px;
@@ -857,11 +860,13 @@ async function feedPage(me) {
 
     btnCasual.onclick = function() {
       btnCasual.classList.add('active'); btnLink.classList.remove('active');
+      indexWrap.classList.remove('tab-link-active');
       indexWrap.querySelectorAll('.branch-row.info').forEach(function(r){ r.classList.add('tab-hidden'); });
       indexWrap.querySelectorAll('.branch-row.casual').forEach(function(r){ r.classList.remove('tab-hidden'); });
     };
     btnLink.onclick = function() {
       btnLink.classList.add('active'); btnCasual.classList.remove('active');
+      indexWrap.classList.add('tab-link-active');
       indexWrap.querySelectorAll('.branch-row.casual').forEach(function(r){ r.classList.add('tab-hidden'); });
       indexWrap.querySelectorAll('.branch-row.info').forEach(function(r){ r.classList.remove('tab-hidden'); });
     };
