@@ -434,7 +434,7 @@ async function getOrCreateProfile(user) {
   }
   var nick = meta.full_name || meta.name || ('객' + Math.floor(Math.random() * 9000 + 1000));
   var profile = { id: user.id, nick: nick, pseudo: false, avatar_url: avatarUrl };
-  await SB.from('profiles').update(profile).eq('id', user.id); // profiles row는 이미 존재(trigger생성)
+  await SB.from('profiles').upsert(profile);
   return profile;
 }
 
