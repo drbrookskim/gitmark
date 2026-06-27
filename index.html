@@ -278,12 +278,12 @@
       position: relative; padding: 14px 0 14px;
       border: 0.5px solid var(--border);
       border-radius: 20px;
-      margin: 12px 2px 90px;
+      margin: 12px 14px 90px;
       overflow: hidden;
     }
     .feed-branch-wrap::before {
       content: ''; position: absolute; left: 50%; top: 0; bottom: 0;
-      width: 1px; background: var(--border);
+      width: 2px; background: var(--border);
       transform: translateX(-50%); pointer-events: none;
     }
     .branch-row {
@@ -297,11 +297,11 @@
     }
     .branch-row.casual {
       justify-content: flex-start;
-      padding-left: 8px; padding-right: calc(25% + 4px);
+      padding-left: 14px; padding-right: calc(50% + 10px);
     }
     .branch-row.info {
       justify-content: flex-end;
-      padding-right: 8px; padding-left: calc(25% + 4px);
+      padding-right: 14px; padding-left: calc(50% + 10px);
     }
     .branch-tile-wrap { flex: 1; min-width: 0; }
     .tile.info-tile { border-color: var(--border-sub); }
