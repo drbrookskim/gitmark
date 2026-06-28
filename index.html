@@ -1561,7 +1561,9 @@ function writePage(me) {
   body.appendChild(nickBar);
   var ta = document.createElement('textarea');
   ta.id = 'write-ta';
-  ta.placeholder = _writeType === 'link' ? '공유를 마크하세요.' : '일상을 마크하세요.';
+  ta.placeholder = window.innerWidth >= 768
+    ? '일상이나 공유를 마크하세요.'
+    : (_writeType === 'link' ? '공유를 마크하세요.' : '일상을 마크하세요.');
   ta.style.cssText = 'min-height:calc(100vh - 180px);font-size:13px;';
   if (_writeDraft) ta.value = _writeDraft;
   ta.oninput = function() {
