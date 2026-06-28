@@ -139,6 +139,18 @@
       padding: 10px 20px; display: flex;
       align-items: center; justify-content: space-between;
     }
+    /* 피드 전용: 완전 fixed 고정 헤더 */
+    .feed-fixed-hdr {
+      position: fixed !important; top: 0; z-index: 20;
+      left: 0; right: 0;
+    }
+    @media (min-width: 768px) {
+      .feed-fixed-hdr {
+        left: max(108px, calc((100vw - 960px) / 2));
+        right: auto;
+        width: min(960px, calc(100vw - max(108px, calc((100vw - 960px) / 2))));
+      }
+    }
     .write-pill {
       font-size: 11px; color: var(--text-muted);
       background: none; border: 0.5px solid var(--border);
@@ -287,7 +299,7 @@
       background: var(--bg-surface); border-bottom: 0.5px solid var(--border);
       font-size: 9px; color: var(--text-dim);
       font-family: 'JetBrains Mono', monospace; letter-spacing: .05em;
-      position: sticky; top: 45px; z-index: 9;
+      position: sticky; top: 54px; z-index: 9;
     }
     .fbh-left  { padding: 5px 12px; text-align: right; }
     .fbh-sep   { background: var(--border); }
@@ -945,10 +957,10 @@ function catPickN(n, total, exclude) {
 async function feedPage(me) {
   var wrap = document.createElement('div');
   wrap.className = 'screen';
-  wrap.style.cssText = 'min-height:100vh;padding-bottom:64px;';
+  wrap.style.cssText = 'min-height:100vh;padding-bottom:64px;padding-top:54px;';
 
   var hdr = document.createElement('div');
-  hdr.className = 'sticky-header';
+  hdr.className = 'sticky-header feed-fixed-hdr';
   var logoBtn = document.createElement('button');
   logoBtn.style.cssText = 'display:flex;align-items:center;gap:7px;background:none;border:none;cursor:pointer;padding:0;color:var(--text);';
   logoBtn.innerHTML = _SVG_LOGO + '<span style="font-size:13px;letter-spacing:.22em;">gitmark</span>';
