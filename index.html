@@ -1418,34 +1418,106 @@ function writePage(me) {
   body.appendChild(ta);
   wrap.appendChild(body);
 
-  // 모바일 전용: 하단 랜덤 고양이
+  var footer = document.createElement('div');
+  footer.style.cssText = 'position:sticky;bottom:0;background:var(--bg);border-top:1px solid var(--border);padding:8px 16px 10px;';
+
+  // 모바일 전용: 카운트 바 위에 랜덤 고양이 (클릭 시 달리기)
   if (window.innerWidth < 768) {
-    var catWrap = document.createElement('div');
-    catWrap.style.cssText = 'display:flex;justify-content:center;padding:8px 0 2px;pointer-events:none;';
-    var catCv = document.createElement('canvas');
-    var catIdx = Math.floor(Math.random() * CAT_SPRITES.length);
-    var catSz = catSpriteSize(catIdx);
-    // 모바일에서 약간 크게 (1.6배)
-    var scale = 1.6;
-    catCv.width  = Math.round(catSz.w * scale);
-    catCv.height = Math.round(catSz.h * scale);
-    catCv.style.cssText = 'opacity:0.12;image-rendering:pixelated;';
-    catWrap.appendChild(catCv);
-    wrap.appendChild(catWrap);
-    function drawWriteCat() {
-      var ctx2 = catCv.getContext('2d');
-      ctx2.clearRect(0, 0, catCv.width, catCv.height);
-      var sp = CAT_SPRITES[catIdx];
-      ctx2.globalAlpha = 1;
-      ctx2.drawImage(catSpriteImg, sp[0], sp[1], sp[2], sp[3], 0, 0, catCv.width, catCv.height);
-    }
-    if (catSpriteImg.complete) drawWriteCat();
-    else catSpriteImg.addEventListener('load', drawWriteCat);
+    var WC_SCALE = 1.6;
+    var WC_ALPHA = 0.12;
+    var WC_RUN_FRAMES = [2, 10, 3, 10];
+    var WC_FRAME_MS = 160;
+    var WC_SPEED = 52;
+    var WC_DUR = 2600;
+
+    var wcIdx = Math.floor(Math.random() * CAT_SPRITES.length); // 정적 포즈
+    var wcSz0 = catSpriteSize(wcIdx);
+    var wcH = Math.round(wcSz0.h * WC_SCALE) + 6;
+
+    var wcCv = document.createElement('canvas');
+    wcCv.style.cssText = 'display:block;width:100%;cursor:pointer;touch-action:manipulation;';
+    footer.appendChild(wcCv);
+
+    // 레이아웃 후 실제 너비 확정
+    requestAnimationFrame(function() {
+      var CW = wcCv.offsetWidth || (window.innerWidth - 32);
+      wcCv.width  = CW;
+      wcCv.height = wcH;
+      var ctx2 = wcCv.getContext('2d');
+
+      var wc = {
+        staticIdx: wcIdx,
+        sceneIdx:  wcIdx,
+        x: Math.max(0, (CW - Math.round(wcSz0.w * WC_SCALE)) / 2),
+        y: 3,
+        w: Math.round(wcSz0.w * WC_SCALE),
+        h: Math.round(wcSz0.h * WC_SCALE),
+        dir: Math.random() < 0.5 ? 1 : -1,
+        phase: Math.random() * Math.PI * 2,
+        frameTick: 0, frameIdx: 0,
+        running: false, runEndT: 0, lastT: 0
+      };
+
+      function wcDrawStatic() {
+        ctx2.clearRect(0, 0, CW, wcH);
+        catDraw(ctx2, wc.staticIdx, wc.x, wc.y, false, WC_ALPHA);
+      }
+
+      function wcLoop(ts) {
+        var dt = wc.lastT ? Math.min(ts - wc.lastT, 50) : 16;
+        wc.lastT = ts;
+        if (Date.now() >= wc.runEndT) {
+          wc.running = false;
+          wc.sceneIdx = wc.staticIdx;
+          var sz0 = catSpriteSize(wc.staticIdx);
+          wc.w = Math.round(sz0.w * WC_SCALE);
+          wc.h = Math.round(sz0.h * WC_SCALE);
+          wc.x = Math.max(0, Math.min(CW - wc.w, wc.x));
+          wcDrawStatic();
+          return;
+        }
+        wc.x += wc.dir * WC_SPEED * dt / 1000;
+        wc.phase += dt / 1000 * Math.PI * 4;
+        wc.frameTick += dt;
+        if (wc.frameTick >= WC_FRAME_MS) {
+          wc.frameTick -= WC_FRAME_MS;
+          wc.frameIdx = (wc.frameIdx + 1) % WC_RUN_FRAMES.length;
+          wc.sceneIdx = WC_RUN_FRAMES[wc.frameIdx];
+          var sz = catSpriteSize(wc.sceneIdx);
+          wc.w = Math.round(sz.w * WC_SCALE); wc.h = Math.round(sz.h * WC_SCALE);
+        }
+        if (wc.x <= 0)        { wc.x = 0;        wc.dir =  1; }
+        if (wc.x >= CW - wc.w){ wc.x = CW - wc.w; wc.dir = -1; }
+        var dy = Math.round(-Math.abs(Math.sin(wc.phase)) * 4);
+        ctx2.clearRect(0, 0, CW, wcH);
+        catDraw(ctx2, wc.sceneIdx, Math.round(wc.x), wc.y + dy, wc.dir < 0, WC_ALPHA);
+        requestAnimationFrame(wcLoop);
+      }
+
+      function wcStart() {
+        if (wc.running) return;
+        wc.running = true;
+        wc.runEndT = Date.now() + WC_DUR;
+        wc.frameIdx = 0; wc.frameTick = 0; wc.phase = 0;
+        wc.sceneIdx = WC_RUN_FRAMES[0];
+        var sz = catSpriteSize(wc.sceneIdx);
+        wc.w = Math.round(sz.w * WC_SCALE); wc.h = Math.round(sz.h * WC_SCALE);
+        wc.lastT = 0;
+        requestAnimationFrame(wcLoop);
+      }
+
+      wcCv.addEventListener('click', wcStart);
+      wcCv.addEventListener('touchstart', function(e){ e.preventDefault(); wcStart(); }, {passive:false});
+
+      if (catSpriteImg.complete) wcDrawStatic();
+      else catSpriteImg.addEventListener('load', wcDrawStatic);
+    });
   }
 
-  var footer = document.createElement('div');
-  footer.style.cssText = 'position:sticky;bottom:0;background:var(--bg);border-top:1px solid var(--border);padding:10px 16px;';
-  footer.innerHTML = '<div style="display:flex;align-items:center;gap:10px;"><div style="flex:1;height:3px;background:var(--bg-elevated);border-radius:2px;overflow:hidden;"><div id="w-bar" style="height:100%;width:0;background:var(--text-muted);border-radius:2px;transition:width .1s,background .1s;"></div></div><span id="w-cnt" style="font-size:11px;color:var(--text-muted);min-width:28px;text-align:right;">'+MAX+'</span></div>';
+  var barRow = document.createElement('div');
+  barRow.style.cssText = 'display:flex;align-items:center;gap:10px;';
+  barRow.innerHTML = '<div style="flex:1;height:3px;background:var(--bg-elevated);border-radius:2px;overflow:hidden;"><div id="w-bar" style="height:100%;width:0;background:var(--text-muted);border-radius:2px;transition:width .1s,background .1s;"></div></div><span id="w-cnt" style="font-size:11px;color:var(--text-muted);min-width:28px;text-align:right;">'+MAX+'</span>';
+  footer.appendChild(barRow);
   wrap.appendChild(footer);
 
   setTimeout(function() { var ta=document.getElementById('write-ta'); if(ta) ta.focus(); }, 50);
