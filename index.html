@@ -987,9 +987,11 @@ async function feedPage(me) {
   searchBtn.innerHTML = '<i class="ti ti-search" style="font-size:13px;"></i>';
   searchBtn.title = '검색';
   var searchBarEl = null;
+  var _searchWrap = null;
   searchBtn.onclick = function() {
     if (searchBarEl) {
-      searchBarEl.remove(); searchBarEl = null;
+      if (_searchWrap) { _searchWrap.remove(); _searchWrap = null; }
+      searchBarEl = null;
       searchBtn.style.borderColor = '';
       indexWrap.querySelectorAll('.branch-row').forEach(function(r){
         r.style.display = '';
@@ -1000,13 +1002,35 @@ async function feedPage(me) {
       return;
     }
     searchBtn.style.borderColor = 'var(--text)';
+    // 검색 박스 래퍼 (아이콘 + input + 취소 버튼)
+    var searchWrap = document.createElement('div');
+    searchWrap.style.cssText = 'position:absolute;left:50%;transform:translateX(-50%);top:100%;width:min(320px,80vw);z-index:50;display:flex;align-items:center;gap:6px;background:var(--bg);border:0.5px solid var(--border);border-radius:8px;padding:6px 10px;box-shadow:0 4px 16px rgba(0,0,0,.08);';
+    var searchIcon = document.createElement('i');
+    searchIcon.className = 'ti ti-search';
+    searchIcon.style.cssText = 'font-size:13px;color:var(--text-muted);flex-shrink:0;';
     searchBarEl = document.createElement('input');
     searchBarEl.type = 'text';
     searchBarEl.placeholder = '검색…';
-    searchBarEl.className = 'input-field';
-    searchBarEl.style.cssText = 'position:absolute;left:50%;transform:translateX(-50%);top:100%;width:min(320px,80vw);z-index:50;background:var(--bg);border:0.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;box-shadow:0 4px 16px rgba(0,0,0,.08);';
+    searchBarEl.style.cssText = 'flex:1;background:none;border:none;outline:none;font-size:13px;font-family:\'JetBrains Mono\',monospace;color:var(--text);min-width:0;';
+    var clearBtn = document.createElement('button');
+    clearBtn.innerHTML = '<i class="ti ti-x" style="font-size:12px;"></i>';
+    clearBtn.style.cssText = 'background:none;border:none;cursor:pointer;color:var(--text-muted);padding:0;display:none;flex-shrink:0;';
+    clearBtn.onclick = function(e) {
+      e.stopPropagation();
+      searchBarEl.value = '';
+      clearBtn.style.display = 'none';
+      searchBarEl.dispatchEvent(new Event('input'));
+      searchBarEl.focus();
+    };
+    searchBarEl.addEventListener('input', function() {
+      clearBtn.style.display = searchBarEl.value ? 'block' : 'none';
+    });
+    searchWrap.appendChild(searchIcon);
+    searchWrap.appendChild(searchBarEl);
+    searchWrap.appendChild(clearBtn);
+    _searchWrap = searchWrap;
     hdr.style.position = 'relative';
-    hdr.appendChild(searchBarEl);
+    hdr.appendChild(searchWrap);
     searchBarEl.focus();
     function hlApply(container, q) {
       // 기존 하이라이트 제거 후 normalize로 분리된 텍스트 노드 병합
