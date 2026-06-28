@@ -947,20 +947,54 @@ async function feedPage(me) {
       return result;
     }
 
-    var catEntries = [], catGroundLines = [], catAnimRaf = null, catAnimating = false;
+    var catEntries = [], catGroundLines = [];
     var CAT_SC = 3, CAT_ALPHA = 0.30;
+    var catRafRunning = false;
 
-    function catRedraw(ctx, W, offsetFn) {
+    function catRedrawAll(ctx, W) {
       ctx.clearRect(0, 0, W, ctx.canvas.height);
       catGroundLines.forEach(function(gl) {
         ctx.fillStyle = 'rgba(40,40,58,0.06)';
         ctx.fillRect(gl.x, gl.y, gl.w, 1);
       });
       catEntries.forEach(function(se) {
-        var off = offsetFn ? offsetFn(se) : {dx:0, dy:0};
-        var scene = (off.mirror) ? catMirror(CAT_SCENES[se.sceneIdx]) : CAT_SCENES[se.sceneIdx];
-        catDraw(ctx, scene, se.origX + off.dx, se.origY + off.dy, CAT_SC, CAT_ALPHA);
+        var dx = 0, dy = 0, mirror = false;
+        if (se.anim) {
+          var el = Date.now() - se.anim.startT;
+          var t = Math.min(el / se.anim.dur, 1);
+          var ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+          var mt = t < 0.8 ? ease*(t/0.8) : ease*(1-(t-0.8)/0.2);
+          dx = Math.round(se.anim.dir * mt * se.zoneW * 0.22);
+          dy = Math.round(-Math.abs(Math.sin(el/55*Math.PI))*5);
+          mirror = se.anim.dir < 0 && Math.floor(el/120)%2===0;
+          if (t >= 1) se.anim = null;
+        }
+        var scene = mirror ? catMirror(CAT_SCENES[se.sceneIdx]) : CAT_SCENES[se.sceneIdx];
+        catDraw(ctx, scene, se.origX + dx, se.origY + dy, CAT_SC, CAT_ALPHA);
       });
+    }
+
+    function catRunRaf(ctx, W) {
+      if (catRafRunning) return;
+      catRafRunning = true;
+      function frame() {
+        catRedrawAll(ctx, W);
+        var anyActive = catEntries.some(function(se){ return !!se.anim; });
+        if (anyActive) requestAnimationFrame(frame);
+        else catRafRunning = false;
+      }
+      requestAnimationFrame(frame);
+    }
+
+    function catTrigger(se, ctx, W, delay) {
+      setTimeout(function() {
+        se.anim = {
+          startT: Date.now(),
+          dir: Math.random() < 0.5 ? 1 : -1,
+          dur: 1800 + Math.random() * 700
+        };
+        catRunRaf(ctx, W);
+      }, delay || 0);
     }
 
     // DOM 삽입 후 실제 크기로 고양이 배치
@@ -1001,37 +1035,45 @@ async function feedPage(me) {
         });
       });
 
-      catRedraw(ctx, W, null);
+      catRedrawAll(ctx, W);
 
-      // 클릭/터치 → 2.5초 달리기 애니메이션
+      // 클릭/터치한 고양이 찾기 → 시간차 연쇄 반응
       catCanvas.style.pointerEvents = 'auto';
-      function catStartAnim() {
-        if (catAnimating) return;
-        catAnimating = true;
-        var startT = Date.now(), DURATION = 2500;
-        function frame() {
-          var elapsed = Date.now() - startT;
-          if (elapsed >= DURATION) {
-            catAnimating = false;
-            catRedraw(ctx, W, null);
-            return;
+
+      function catHandleInteract(mx, my) {
+        // 클릭 위치에 해당하는 고양이 찾기
+        var hit = null;
+        catEntries.forEach(function(se) {
+          if (!hit &&
+              mx >= se.origX - 4 && mx <= se.origX + se.sW + 4 &&
+              my >= se.origY - 4 && my <= se.origY + se.sH + 4) {
+            hit = se;
           }
-          var t = elapsed / DURATION;
-          var ease = t < 0.5 ? 2*t*t : -1 + (4 - 2*t)*t;
-          var moveT = t < 0.8 ? ease * (t / 0.8) : ease * (1 - (t - 0.8) / 0.2);
-          catRedraw(ctx, W, function(se) {
-            var dir = se.isCasual ? 1 : -1;
-            var dx = dir * moveT * se.zoneW * 0.22;
-            var dy = -Math.abs(Math.sin(elapsed / 55 * Math.PI)) * 5;
-            var mirror = (Math.floor(elapsed / 120) % 2 === 0) && dir < 0;
-            return {dx: Math.round(dx), dy: Math.round(dy), mirror: mirror};
-          });
-          catAnimRaf = requestAnimationFrame(frame);
+        });
+        if (!hit) return;
+
+        // 클릭된 고양이 즉시 실행
+        catTrigger(hit, ctx, W, 0);
+
+        // 나머지 고양이들 중 1~2마리 랜덤으로 시간차 연쇄
+        var others = catEntries.filter(function(se){ return se !== hit && !se.anim; });
+        others.sort(function(){ return Math.random() - 0.5; });
+        var ripple = Math.min(Math.floor(Math.random() * 2) + 1, others.length);
+        for (var i = 0; i < ripple; i++) {
+          catTrigger(others[i], ctx, W, 280 + i * (200 + Math.random() * 250));
         }
-        catAnimRaf = requestAnimationFrame(frame);
       }
-      catCanvas.addEventListener('click', catStartAnim);
-      catCanvas.addEventListener('touchstart', function(e){ e.preventDefault(); catStartAnim(); }, {passive:false});
+
+      catCanvas.addEventListener('click', function(e) {
+        var r = catCanvas.getBoundingClientRect();
+        catHandleInteract(e.clientX - r.left, e.clientY - r.top);
+      });
+      catCanvas.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        var r = catCanvas.getBoundingClientRect();
+        var t = e.touches[0];
+        catHandleInteract(t.clientX - r.left, t.clientY - r.top);
+      }, {passive:false});
     });
 
     btnCasual.onclick = function() {
