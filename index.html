@@ -506,6 +506,32 @@ async function getOrCreateProfile(user) {
 }
 
 // ── 테마 ────────────────────────────────────────────────────────────
+// 원형 클립 아이콘 — 핀+타임라인을 원 안에 배치
+var _SVG_LOGO =
+  '<svg viewBox="0 0 44 44" width="22" height="22" xmlns="http://www.w3.org/2000/svg">' +
+  '<defs><clipPath id="gm-circle"><circle cx="22" cy="22" r="21"/></clipPath></defs>' +
+  // 배경 원
+  '<circle cx="22" cy="22" r="21" fill="#e05535"/>' +
+  // 클립 영역 안 콘텐츠
+  '<g clip-path="url(#gm-circle)">' +
+  // 핀 본체
+  '<path d="M22 3C13 3 6 10.2 6 19.5C6 29 22 41 22 41C22 41 38 29 38 19.5C38 10.2 31 3 22 3Z" fill="white"/>' +
+  // 핀 오른쪽 접힘 (반투명 어두운 면)
+  '<path d="M22 3C31 3 38 10.2 38 19.5C38 29 22 41 22 41Z" fill="rgba(0,0,0,0.12)"/>' +
+  // 오렌지 원 (git 아이콘 배경)
+  '<circle cx="22" cy="19" r="10" fill="#e05535"/>' +
+  // git branch 아이콘 (흰색)
+  '<circle cx="19.5" cy="25" r="2" fill="white"/>' +
+  '<line x1="19.5" y1="23" x2="19.5" y2="15.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/>' +
+  '<circle cx="19.5" cy="13.5" r="2" fill="white"/>' +
+  '<path d="M19.5 18.5Q22.5 16.5 25.5 13.5" stroke="white" stroke-width="1.8" fill="none" stroke-linecap="round"/>' +
+  '<circle cx="25.5" cy="13.5" r="2" fill="white"/>' +
+  // 타임라인 바 (원 아래쪽)
+  '<rect x="0" y="40" width="44" height="4" fill="#3a3a4a"/>' +
+  '<circle cx="22" cy="41" r="3.5" fill="#2a2a38"/>' +
+  '</g>' +
+  '</svg>';
+
 var _SVG_SUN = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="18" height="18" shape-rendering="crispEdges">' +
   '<rect x="7" y="0" width="2" height="3" fill="#f59e0b"/>' +
   '<rect x="7" y="13" width="2" height="3" fill="#f59e0b"/>' +
@@ -737,7 +763,10 @@ function authPage() {
   wrap.className = 'screen';
   wrap.innerHTML = [
     '<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px;">',
-    '<div style="font-size:19px;letter-spacing:.3em;color:var(--text);margin-bottom:3px;font-weight:500;">g i t m a r k</div>',
+    '<div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:6px;">',
+    '<div id="auth-logo"></div>',
+    '<div style="font-size:19px;letter-spacing:.3em;color:var(--text);font-weight:500;">g i t m a r k</div>',
+    '</div>',
     '<div style="font-size:9px;letter-spacing:.25em;color:var(--text-muted);margin-bottom:20px;">SOCIAL TRACES</div>',
     '<button id="google-btn" style="display:flex;align-items:center;gap:10px;padding:11px 22px;border:0.5px solid var(--border);border-radius:6px;background:var(--bg-surface);color:var(--text);font-size:13px;cursor:pointer;transition:border-color .15s;" onmouseover="this.style.borderColor=\'var(--text-muted)\'" onmouseout="this.style.borderColor=\'var(--border)\'">',
     '<svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>',
@@ -745,6 +774,9 @@ function authPage() {
     '</button>',
     '</div>'
   ].join('');
+  // 인증 페이지 로고 — 큰 사이즈
+  var authLogo = wrap.querySelector('#auth-logo');
+  if (authLogo) authLogo.innerHTML = _SVG_LOGO.replace('width="22" height="22"', 'width="72" height="72"');
   wrap.querySelector('#google-btn').onclick = function() {
     SB.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: 'https://drbrookskim.github.io/gitmark' } });
   };
@@ -846,7 +878,7 @@ async function feedPage(me) {
 
   var hdr = document.createElement('div');
   hdr.className = 'sticky-header';
-  hdr.innerHTML = '<span style="font-size:13px;letter-spacing:.22em;">gitmark</span>';
+  hdr.innerHTML = '<span style="display:flex;align-items:center;gap:7px;">' + _SVG_LOGO + '<span style="font-size:13px;letter-spacing:.22em;">gitmark</span></span>';
   var writeBtn = document.createElement('button');
   writeBtn.className = 'write-pill';
   writeBtn.textContent = '+ mark';
