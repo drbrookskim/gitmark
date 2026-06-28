@@ -990,56 +990,11 @@ async function feedPage(me) {
 
     var catEntries = [], catGroundLines = [];
     var CAT_ALPHA = 0.05;
-    var catRafRunning = false;
-
-    function catRedrawAll(ctx, W) {
-      ctx.clearRect(0, 0, W, ctx.canvas.height);
-      catGroundLines.forEach(function(gl) {
-        ctx.fillStyle = 'rgba(40,40,58,0.06)';
-        ctx.fillRect(gl.x, gl.y, gl.w, 1);
-      });
-      catEntries.forEach(function(se) {
-        var dx = 0, dy = 0, mirror = false;
-        if (se.anim) {
-          var el = Date.now() - se.anim.startT;
-          var t = Math.min(el / se.anim.dur, 1);
-          var ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
-          var mt = t < 0.8 ? ease*(t/0.8) : ease*(1-(t-0.8)/0.2);
-          dx = Math.round(se.anim.dir * mt * se.zoneW * 0.22);
-          // 빈 공간 경계 내로 클램프 (피드 침범 방지)
-          var minDx = se.zoneX - se.origX;
-          var maxDx = se.zoneX + se.zoneW - se.origX - se.sW;
-          dx = Math.max(minDx, Math.min(maxDx, dx));
-          dy = Math.round(-Math.abs(Math.sin(el/55*Math.PI))*5);
-          mirror = se.anim.dir < 0 && Math.floor(el/120)%2===0;
-          if (t >= 1) se.anim = null;
-        }
-        catDraw(ctx, se.sceneIdx, se.origX + dx, se.origY + dy, mirror, CAT_ALPHA);
-      });
-    }
-
-    function catRunRaf(ctx, W) {
-      if (catRafRunning) return;
-      catRafRunning = true;
-      function frame() {
-        catRedrawAll(ctx, W);
-        var anyActive = catEntries.some(function(se){ return !!se.anim; });
-        if (anyActive) requestAnimationFrame(frame);
-        else catRafRunning = false;
-      }
-      requestAnimationFrame(frame);
-    }
-
-    function catTrigger(se, ctx, W, delay) {
-      setTimeout(function() {
-        se.anim = {
-          startT: Date.now(),
-          dir: Math.random() < 0.5 ? 1 : -1,
-          dur: 1800 + Math.random() * 700
-        };
-        catRunRaf(ctx, W);
-      }, delay || 0);
-    }
+    // 달리기 애니메이션: 프레임 순서 [달리기, 달리기v2, 점프, 달리기v2]
+    var CAT_RUN_FRAMES = [2, 10, 3, 10];
+    var CAT_FRAME_MS  = 160;   // 프레임당 ms (~6fps)
+    var CAT_SPEED_PXS = 48;    // 초당 이동 픽셀
+    var catRafId = null, catLastT = 0;
 
     // DOM 삽입 후 실제 크기로 고양이 배치 (모바일 제외)
     requestAnimationFrame(function() {
@@ -1090,36 +1045,87 @@ async function feedPage(me) {
         });
       });
 
-      catRedrawAll(ctx, W);
-      // 캔버스는 pointer-events:none 유지 — indexWrap에서 이벤트 수신
-      // (.branch-row z-index:2가 canvas z-index:1을 덮기 때문)
+      // 각 고양이에 달리기 상태 초기화
+      catEntries.forEach(function(se) {
+        var fi = Math.floor(Math.random() * CAT_RUN_FRAMES.length);
+        se.frameIdx  = fi;
+        se.sceneIdx  = CAT_RUN_FRAMES[fi];
+        var sz = catSpriteSize(se.sceneIdx);
+        se.sW = sz.w; se.sH = sz.h;
+        se.runX      = Math.max(se.zoneX, Math.min(se.zoneX + se.zoneW - se.sW, se.origX));
+        se.runDir    = Math.random() < 0.5 ? 1 : -1;
+        se.runPhase  = Math.random() * Math.PI * 2;
+        se.frameTick = Math.random() * CAT_FRAME_MS;
+        se.spooked   = 0; // 놀람 남은 ms
+      });
 
+      // 연속 RAF 루프 (항상 실행)
+      function catLoop(ts) {
+        var dt = catLastT ? Math.min(ts - catLastT, 50) : 16;
+        catLastT = ts;
+
+        ctx.clearRect(0, 0, W, ctx.canvas.height);
+        catGroundLines.forEach(function(gl) {
+          ctx.fillStyle = 'rgba(40,40,58,0.06)';
+          ctx.fillRect(gl.x, gl.y, gl.w, 1);
+        });
+
+        catEntries.forEach(function(se) {
+          // 놀람 상태 처리
+          if (se.spooked > 0) {
+            se.spooked -= dt;
+            if (se.spooked <= 0) se.spooked = 0;
+          }
+
+          // 위치 업데이트
+          var speed = CAT_SPEED_PXS * (se.spooked > 0 ? 2.8 : 1);
+          se.runX += se.runDir * speed * dt / 1000;
+          se.runPhase += dt / 1000 * Math.PI * 4;
+
+          // 프레임 사이클
+          se.frameTick += dt;
+          if (se.frameTick >= CAT_FRAME_MS) {
+            se.frameTick -= CAT_FRAME_MS;
+            if (se.spooked > 0) {
+              se.sceneIdx = 5; // 놀란 포즈
+            } else {
+              se.frameIdx = (se.frameIdx + 1) % CAT_RUN_FRAMES.length;
+              se.sceneIdx = CAT_RUN_FRAMES[se.frameIdx];
+            }
+            var sz = catSpriteSize(se.sceneIdx);
+            se.sW = sz.w; se.sH = sz.h;
+          }
+
+          // 경계 반전 (피드 침범 방지)
+          var minX = se.zoneX, maxX = se.zoneX + se.zoneW - se.sW;
+          if (se.runX <= minX) { se.runX = minX; se.runDir = 1; }
+          if (se.runX >= maxX) { se.runX = maxX; se.runDir = -1; }
+
+          var dy = Math.round(-Math.abs(Math.sin(se.runPhase)) * 5);
+          catDraw(ctx, se.sceneIdx, Math.round(se.runX), se.origY + dy, se.runDir < 0, CAT_ALPHA);
+        });
+
+        catRafId = requestAnimationFrame(catLoop);
+      }
+      catRafId = requestAnimationFrame(catLoop);
+
+      // 클릭 시 고양이 놀라게 하기 (현재 runX 기준으로 히트 판정)
       function catHandleInteract(mx, my) {
-        // indexWrap 기준 좌표 → canvas 좌표 변환 (canvas는 indexWrap 상단 기준)
         var wrapRect = indexWrap.getBoundingClientRect();
         var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        // canvas 좌표 = 클릭의 문서 좌표 - canvas(=indexWrap) 문서 상단
         var cx = mx - wrapRect.left;
         var cy = my + scrollTop - (wrapRect.top + scrollTop);
-
         var hit = null;
         catEntries.forEach(function(se) {
           if (!hit &&
-              cx >= se.origX - 6 && cx <= se.origX + se.sW + 6 &&
-              cy >= se.origY - 6 && cy <= se.origY + se.sH + 6) {
+              cx >= se.runX - 8 && cx <= se.runX + se.sW + 8 &&
+              cy >= se.origY - 8 && cy <= se.origY + se.sH + 8) {
             hit = se;
           }
         });
         if (!hit) return;
-
-        catTrigger(hit, ctx, W, 0);
-
-        var others = catEntries.filter(function(se){ return se !== hit && !se.anim; });
-        others.sort(function(){ return Math.random() - 0.5; });
-        var ripple = Math.min(Math.floor(Math.random() * 2) + 1, others.length);
-        for (var i = 0; i < ripple; i++) {
-          catTrigger(others[i], ctx, W, 280 + i * (200 + Math.random() * 250));
-        }
+        hit.spooked = 1200;
+        hit.runDir *= -1;
       }
 
       indexWrap.addEventListener('click', function(e) {
