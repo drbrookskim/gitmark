@@ -925,7 +925,11 @@ async function feedPage(me) {
 
   var hdr = document.createElement('div');
   hdr.className = 'sticky-header';
-  hdr.innerHTML = '<span style="display:flex;align-items:center;gap:7px;">' + _SVG_LOGO + '<span style="font-size:13px;letter-spacing:.22em;">gitmark</span></span>';
+  var logoBtn = document.createElement('button');
+  logoBtn.style.cssText = 'display:flex;align-items:center;gap:7px;background:none;border:none;cursor:pointer;padding:0;color:var(--text);';
+  logoBtn.innerHTML = _SVG_LOGO + '<span style="font-size:13px;letter-spacing:.22em;">gitmark</span>';
+  logoBtn.onclick = function() { R.go('/'); };
+  hdr.appendChild(logoBtn);
   var writeBtn = document.createElement('button');
   writeBtn.className = 'write-pill';
   writeBtn.textContent = '+ mark';
@@ -988,7 +992,7 @@ async function feedPage(me) {
 
 
     var catEntries = [], catGroundLines = [];
-    var CAT_ALPHA = 0.05;
+    var CAT_ALPHA = 0.12;
     var CAT_RUN_FRAMES = [2, 10, 3, 10]; // 달리기 프레임 사이클
     var CAT_FRAME_MS  = 160;             // 프레임당 ms
     var CAT_SPEED_PXS = 52;             // 달리기 속도 (px/s)
@@ -1358,6 +1362,7 @@ function writePage(me) {
   hdr.appendChild(cancelBtn);
   hdr.appendChild(submitBtn);
   wrap.appendChild(hdr);
+  wrap.appendChild(tabBar('/write', me));
 
   var body = document.createElement('div');
   body.style.cssText = 'padding:14px 16px;flex:1;';
