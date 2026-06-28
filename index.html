@@ -1030,7 +1030,7 @@ async function feedPage(me) {
           var sy = groundY - sH + (Math.random() - 0.5) * 8;
           catEntries.push({
             sceneIdx: idx, origX: Math.round(curX), origY: Math.round(sy),
-            groundY: groundY, zoneX: zoneX, zoneW: zoneW, isCasual: isCasual, sW: sW
+            groundY: groundY, zoneX: zoneX, zoneW: zoneW, isCasual: isCasual, sW: sW, sH: sH
           });
           curX += sW + gap;
         });
