@@ -1421,8 +1421,8 @@ function writePage(me) {
   var footer = document.createElement('div');
   footer.style.cssText = 'position:sticky;bottom:0;background:var(--bg);border-top:1px solid var(--border);padding:8px 16px 10px;';
 
-  // 모바일 전용: 카운트 바 위에 랜덤 고양이 (클릭 시 달리기)
-  if (window.innerWidth < 768) {
+  // 카운트 바 위에 랜덤 고양이 (클릭 시 달리기, 모바일+데스크탑)
+  {
     var WC_SCALE = 1.6;
     var WC_ALPHA = 0.12;
     var WC_RUN_FRAMES = [2, 10, 3, 10];
