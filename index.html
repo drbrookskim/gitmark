@@ -990,11 +990,11 @@ async function feedPage(me) {
 
     var catEntries = [], catGroundLines = [];
     var CAT_ALPHA = 0.05;
-    // 달리기 애니메이션: 프레임 순서 [달리기, 달리기v2, 점프, 달리기v2]
-    var CAT_RUN_FRAMES = [2, 10, 3, 10];
-    var CAT_FRAME_MS  = 160;   // 프레임당 ms (~6fps)
-    var CAT_SPEED_PXS = 48;    // 초당 이동 픽셀
-    var catRafId = null, catLastT = 0;
+    var CAT_RUN_FRAMES = [2, 10, 3, 10]; // 달리기 프레임 사이클
+    var CAT_FRAME_MS  = 160;             // 프레임당 ms
+    var CAT_SPEED_PXS = 52;             // 달리기 속도 (px/s)
+    var CAT_RUN_DUR   = 2600;           // 달리기 지속 ms
+    var catRafId = null, catLastT = 0, catAnyRunning = false;
 
     // DOM 삽입 후 실제 크기로 고양이 배치 (모바일 제외)
     requestAnimationFrame(function() {
@@ -1045,21 +1045,32 @@ async function feedPage(me) {
         });
       });
 
-      // 각 고양이에 달리기 상태 초기화
+      // 각 고양이: 정적 포즈(staticIdx)와 달리기 상태 초기화
       catEntries.forEach(function(se) {
-        var fi = Math.floor(Math.random() * CAT_RUN_FRAMES.length);
-        se.frameIdx  = fi;
-        se.sceneIdx  = CAT_RUN_FRAMES[fi];
-        var sz = catSpriteSize(se.sceneIdx);
-        se.sW = sz.w; se.sH = sz.h;
-        se.runX      = Math.max(se.zoneX, Math.min(se.zoneX + se.zoneW - se.sW, se.origX));
+        se.staticIdx = se.sceneIdx;              // 원래 포즈 보존
+        se.runX      = se.origX;                 // 현재 x (달리기 중 변경)
         se.runDir    = Math.random() < 0.5 ? 1 : -1;
         se.runPhase  = Math.random() * Math.PI * 2;
-        se.frameTick = Math.random() * CAT_FRAME_MS;
-        se.spooked   = 0; // 놀람 남은 ms
+        se.frameTick = 0;
+        se.frameIdx  = 0;
+        se.running   = false;
+        se.runEndT   = 0;
       });
 
-      // 연속 RAF 루프 (항상 실행)
+      // 정적 그리기 (RAF 없이 1회)
+      function catDrawStatic() {
+        ctx.clearRect(0, 0, W, ctx.canvas.height);
+        catGroundLines.forEach(function(gl) {
+          ctx.fillStyle = 'rgba(40,40,58,0.06)';
+          ctx.fillRect(gl.x, gl.y, gl.w, 1);
+        });
+        catEntries.forEach(function(se) {
+          catDraw(ctx, se.staticIdx, se.origX, se.origY, false, CAT_ALPHA);
+        });
+      }
+      catDrawStatic();
+
+      // RAF 루프 — 달리는 고양이가 있을 때만 실행
       function catLoop(ts) {
         var dt = catLastT ? Math.min(ts - catLastT, 50) : 16;
         catLastT = ts;
@@ -1070,33 +1081,37 @@ async function feedPage(me) {
           ctx.fillRect(gl.x, gl.y, gl.w, 1);
         });
 
+        catAnyRunning = false;
         catEntries.forEach(function(se) {
-          // 놀람 상태 처리
-          if (se.spooked > 0) {
-            se.spooked -= dt;
-            if (se.spooked <= 0) se.spooked = 0;
+          if (!se.running) {
+            // 정적 포즈
+            catDraw(ctx, se.staticIdx, se.origX, se.origY, false, CAT_ALPHA);
+            return;
           }
+          // 달리기 종료 체크
+          if (Date.now() >= se.runEndT) {
+            se.running = false;
+            se.runX = se.origX;
+            catDraw(ctx, se.staticIdx, se.origX, se.origY, false, CAT_ALPHA);
+            return;
+          }
+          catAnyRunning = true;
 
-          // 위치 업데이트
-          var speed = CAT_SPEED_PXS * (se.spooked > 0 ? 2.8 : 1);
-          se.runX += se.runDir * speed * dt / 1000;
+          // 위치 · 바운스 업데이트
+          se.runX += se.runDir * CAT_SPEED_PXS * dt / 1000;
           se.runPhase += dt / 1000 * Math.PI * 4;
 
           // 프레임 사이클
           se.frameTick += dt;
           if (se.frameTick >= CAT_FRAME_MS) {
             se.frameTick -= CAT_FRAME_MS;
-            if (se.spooked > 0) {
-              se.sceneIdx = 5; // 놀란 포즈
-            } else {
-              se.frameIdx = (se.frameIdx + 1) % CAT_RUN_FRAMES.length;
-              se.sceneIdx = CAT_RUN_FRAMES[se.frameIdx];
-            }
+            se.frameIdx = (se.frameIdx + 1) % CAT_RUN_FRAMES.length;
+            se.sceneIdx = CAT_RUN_FRAMES[se.frameIdx];
             var sz = catSpriteSize(se.sceneIdx);
             se.sW = sz.w; se.sH = sz.h;
           }
 
-          // 경계 반전 (피드 침범 방지)
+          // 경계 반전
           var minX = se.zoneX, maxX = se.zoneX + se.zoneW - se.sW;
           if (se.runX <= minX) { se.runX = minX; se.runDir = 1; }
           if (se.runX >= maxX) { se.runX = maxX; se.runDir = -1; }
@@ -1105,11 +1120,27 @@ async function feedPage(me) {
           catDraw(ctx, se.sceneIdx, Math.round(se.runX), se.origY + dy, se.runDir < 0, CAT_ALPHA);
         });
 
-        catRafId = requestAnimationFrame(catLoop);
+        if (catAnyRunning) requestAnimationFrame(catLoop);
+        else { catRafId = null; catLastT = 0; }
       }
-      catRafId = requestAnimationFrame(catLoop);
 
-      // 클릭 시 고양이 놀라게 하기 (현재 runX 기준으로 히트 판정)
+      function catStartRun(se) {
+        var sz = catSpriteSize(CAT_RUN_FRAMES[0]);
+        se.sceneIdx  = CAT_RUN_FRAMES[0];
+        se.sW = sz.w; se.sH = sz.h;
+        se.frameIdx  = 0;
+        se.frameTick = 0;
+        se.runPhase  = 0;
+        se.runX      = se.origX;
+        se.runEndT   = Date.now() + CAT_RUN_DUR;
+        se.running   = true;
+        if (!catRafId) {
+          catLastT = 0;
+          catRafId = requestAnimationFrame(catLoop);
+        }
+      }
+
+      // 클릭/터치 — 정적 origX 기준 히트 판정
       function catHandleInteract(mx, my) {
         var wrapRect = indexWrap.getBoundingClientRect();
         var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
@@ -1117,15 +1148,25 @@ async function feedPage(me) {
         var cy = my + scrollTop - (wrapRect.top + scrollTop);
         var hit = null;
         catEntries.forEach(function(se) {
+          var hx = se.running ? Math.round(se.runX) : se.origX;
           if (!hit &&
-              cx >= se.runX - 8 && cx <= se.runX + se.sW + 8 &&
+              cx >= hx - 8 && cx <= hx + se.sW + 8 &&
               cy >= se.origY - 8 && cy <= se.origY + se.sH + 8) {
             hit = se;
           }
         });
         if (!hit) return;
-        hit.spooked = 1200;
-        hit.runDir *= -1;
+        // 클릭된 고양이 즉시 달리기
+        catStartRun(hit);
+        // 주변 고양이들도 시간차로 달리기
+        var others = catEntries.filter(function(se){ return se !== hit && !se.running; });
+        others.sort(function(){ return Math.random() - 0.5; });
+        var ripple = Math.min(Math.floor(Math.random() * 2) + 1, others.length);
+        for (var i = 0; i < ripple; i++) {
+          (function(target, delay) {
+            setTimeout(function() { catStartRun(target); }, delay);
+          })(others[i], 300 + i * (200 + Math.random() * 200));
+        }
       }
 
       indexWrap.addEventListener('click', function(e) {
