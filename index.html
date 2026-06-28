@@ -940,39 +940,42 @@ async function feedPage(me) {
     wrap.appendChild(indexWrap);
 
     // 고양이 10종 픽셀아트 씬
-    var CAT_SCENES = [
-      // 1. 앉아있는 고양이 (정면)
-      ['..##..##..', '.########.', '.########.', '##.####.##', '.########.', '..######..', '..######..', '..######..', '.##....##.', '..######..'],
-      // 2. 누워있는 고양이 (수평)
-      ['.##..........', '#############', '##.##########', '#############', '.############', '..###..######', '...##...####.'],
-      // 3. 달리는 고양이 (납작하게 뻗음)
-      ['...........##', '..#########.#', '.###########.', '#############', '##.###.....##', '...#........#'],
-      // 4. 뛰어오르는 고양이 (꼬리 위)
-      ['...#####...', '..#######..', '.#########.', '.#########.', '.##.....##.', '..#.....#..', '..##...##..'],
-      // 5. 그루밍 고양이 (앞발 올림)
-      ['..##....##.', '.#########.', '.###..#####', '.#########.', '..#######..', '..##...##..', '..##...####', '..#######..'],
-      // 6. 놀란 고양이 (털 세움)
-      ['#.###.###.#', '.###########', '.###########', '..##.#######', '...##..#####', '...###...###', '...####.####', '...##....###'],
-      // 7. 꼬리 들고 걷는 고양이
-      ['..........#', '........###', '....######.', '..#########', '.##########', '##..##.####', '#...##.....', '....##.....'],
-      // 8. 잠자는 고양이 (둥글게 말림)
-      ['....########', '...##########', '..##.##.#####', '.##..##..####', '##...########', '.############', '..##########.', '...########..'],
-      // 9. 기지개 켜는 고양이 (앞발 앞으로)
-      ['........#####', '.......######', '....#########', '..###########', '.############', '.##..........', '.###.........'],
-      // 10. 뒤돌아보는 고양이 (꼬리 위)
-      ['......###', '......###', '...####..', '..#######', '..#######', '.########', '##..#####', '#...#####', '.....#...', '.....#...']
+    // 스프라이트 시트: [sx, sy, sw, sh] (assets/cat-sprites.png 기준 픽셀 좌표)
+    var CAT_SPRITES = [
+      [126,  356, 241, 226],  // 0: 앉아있는
+      [434,  443, 421, 139],  // 1: 누워있는
+      [898,  361, 394, 221],  // 2: 달리는
+      [1339, 180, 337, 250],  // 3: 점프하는
+      [1748, 317, 270, 265],  // 4: 그루밍
+      [2109, 304, 343, 278],  // 5: 놀란/하이싱
+      [2544, 325, 341, 306],  // 6: 긁는
+      [2940, 423, 283, 167],  // 7: 잠자는
+      [3395, 276, 272, 321],  // 8: 기지개/돌아보기
+      [127,  778, 240, 226],  // 9: 앉아있는 v2
+      [898,  784, 394, 220],  // 10: 달리는 v2
+      [1339, 633, 337, 249],  // 11: 점프하는 v2
+      [2121, 797, 311, 208],  // 12: 그루밍 v2
+      [2901, 764, 345, 240],  // 13: 잠자는 v2
     ];
+    var CAT_MAX_H = 52, CAT_MAX_W = 84;
+    var catSpriteImg = (function() { var img = new Image(); img.src = 'assets/cat-sprites.png'; return img; })();
 
-    function catMirror(scene) {
-      return scene.map(function(row){ return row.split('').reverse().join(''); });
+    function catSpriteSize(i) {
+      var sp = CAT_SPRITES[i], sc = Math.min(CAT_MAX_H / sp[3], CAT_MAX_W / sp[2]);
+      return { w: Math.round(sp[2] * sc), h: Math.round(sp[3] * sc) };
     }
-    function catDraw(ctx, scene, sx, sy, sc, alpha) {
-      ctx.fillStyle = 'rgba(40,40,58,' + alpha + ')';
-      scene.forEach(function(row, ry) {
-        for (var c = 0; c < row.length; c++) {
-          if (row[c] === '#') ctx.fillRect(sx + c*sc, sy + ry*sc, sc - 0.5, sc - 0.5);
-        }
-      });
+    function catDraw(ctx, spriteIdx, dx, dy, mirror, alpha) {
+      var sp = CAT_SPRITES[spriteIdx], sz = catSpriteSize(spriteIdx);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      if (mirror) {
+        ctx.translate(dx + sz.w, dy);
+        ctx.scale(-1, 1);
+        ctx.drawImage(catSpriteImg, sp[0], sp[1], sp[2], sp[3], 0, 0, sz.w, sz.h);
+      } else {
+        ctx.drawImage(catSpriteImg, sp[0], sp[1], sp[2], sp[3], dx, dy, sz.w, sz.h);
+      }
+      ctx.restore();
     }
     function catPickN(n, total, exclude) {
       var pool = [];
@@ -986,7 +989,7 @@ async function feedPage(me) {
     }
 
     var catEntries = [], catGroundLines = [];
-    var CAT_SC = 3, CAT_ALPHA = 0.30;
+    var CAT_ALPHA = 0.30;
     var catRafRunning = false;
 
     function catRedrawAll(ctx, W) {
@@ -1007,8 +1010,7 @@ async function feedPage(me) {
           mirror = se.anim.dir < 0 && Math.floor(el/120)%2===0;
           if (t >= 1) se.anim = null;
         }
-        var scene = mirror ? catMirror(CAT_SCENES[se.sceneIdx]) : CAT_SCENES[se.sceneIdx];
-        catDraw(ctx, scene, se.origX + dx, se.origY + dy, CAT_SC, CAT_ALPHA);
+        catDraw(ctx, se.sceneIdx, se.origX + dx, se.origY + dy, mirror, CAT_ALPHA);
       });
     }
 
@@ -1052,19 +1054,19 @@ async function feedPage(me) {
         var isCasual = row.classList.contains('casual');
         var zoneX = isCasual ? CX + 6 : 6, zoneW = CX - 12;
         var count = Math.random() < 0.4 ? 3 : 2;
-        var picked = catPickN(count, CAT_SCENES.length, usedPrev.slice(-2));
+        var picked = catPickN(count, CAT_SPRITES.length, usedPrev.slice(-2));
         usedPrev = usedPrev.concat(picked).slice(-4);
         var maxSH = 0;
-        picked.forEach(function(i){ maxSH = Math.max(maxSH, CAT_SCENES[i].length * CAT_SC); });
+        picked.forEach(function(i){ maxSH = Math.max(maxSH, catSpriteSize(i).h); });
         var groundY = top + (rH - maxSH) / 2 + maxSH + 4;
         var totalW = 0;
-        picked.forEach(function(i){ totalW += CAT_SCENES[i][0].length * CAT_SC; });
+        picked.forEach(function(i){ totalW += catSpriteSize(i).w; });
         var gap = Math.max(10, Math.min(24, (zoneW - totalW) / (picked.length + 1)));
         var curX = zoneX + (zoneW - totalW - gap * (picked.length - 1)) / 2;
         catGroundLines.push({x: zoneX, y: groundY + 1, w: zoneW});
         picked.forEach(function(idx) {
-          var scene = CAT_SCENES[idx];
-          var sW = scene[0].length * CAT_SC, sH = scene.length * CAT_SC;
+          var sz = catSpriteSize(idx);
+          var sW = sz.w, sH = sz.h;
           var sy = groundY - sH + (Math.random() - 0.5) * 8;
           catEntries.push({
             sceneIdx: idx, origX: Math.round(curX), origY: Math.round(sy),
