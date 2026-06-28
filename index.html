@@ -104,6 +104,12 @@
       width: 100%; max-width: 680px;
       background: var(--bg); border-top: 0.5px solid var(--border);
       display: flex; z-index: 20;
+      transition: transform .25s ease, opacity .25s ease;
+    }
+    .tab-bar.hide-bar {
+      transform: translateX(-50%) translateY(100%);
+      opacity: 0;
+      pointer-events: none;
     }
     .tab-bar button {
       flex: 1; padding: 10px 0 13px;
@@ -682,6 +688,24 @@ function typewriterReveal(el, txt, onDone) {
 var _feedTab = 'casual';
 var _cachedMe = null;
 var _writeDraft = '';
+var _writeType = 'casual'; // casual | link
+
+// 모바일 스크롤 시 하단 바 자동 hide/show
+(function() {
+  var lastY = 0, ticking = false;
+  window.addEventListener('scroll', function() {
+    if (window.innerWidth >= 768) return;
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(function() {
+      var y = window.pageYOffset;
+      var bar = document.querySelector('.tab-bar');
+      if (bar) bar.classList.toggle('hide-bar', y > lastY && y > 60);
+      lastY = y;
+      ticking = false;
+    });
+  }, {passive: true});
+})();
 
 // ── 라우터 (해시 기반) ───────────────────────────────────────────────
 var R = {
@@ -735,7 +759,7 @@ SB.auth.onAuthStateChange(function(event) {
 function tabBar(active, me) {
   var tabs = [
     {icon:'ti-home',    label:'피드',  path:'/'},
-    {icon:'ti-pencil',  label:'쓰기',  path:'/write'},
+    {icon:'ti-pencil',  label:'mark',  path:'/write'},
     {icon:'ti-notes',   label:'내 글', path:'/my'},
     {icon:null,         label:'my page', path:'/profile'}
   ];
@@ -933,8 +957,44 @@ async function feedPage(me) {
   var writeBtn = document.createElement('button');
   writeBtn.className = 'write-pill';
   writeBtn.textContent = '+ mark';
-  writeBtn.onclick = function() { R.go('/write'); };
+  writeBtn.onclick = function() { _writeType = _feedTab; R.go('/write'); };
   hdr.appendChild(writeBtn);
+
+  // 검색 버튼
+  var searchBtn = document.createElement('button');
+  searchBtn.className = 'write-pill';
+  searchBtn.innerHTML = '<i class="ti ti-search" style="font-size:13px;"></i>';
+  searchBtn.title = '검색';
+  var searchBarEl = null;
+  searchBtn.onclick = function() {
+    if (searchBarEl) {
+      searchBarEl.remove(); searchBarEl = null;
+      searchBtn.style.borderColor = '';
+      // 숨겼던 카드 복원
+      indexWrap.querySelectorAll('.branch-row').forEach(function(r){ r.style.display = ''; });
+      return;
+    }
+    searchBtn.style.borderColor = 'var(--text)';
+    searchBarEl = document.createElement('input');
+    searchBarEl.type = 'text';
+    searchBarEl.placeholder = '검색…';
+    searchBarEl.className = 'input-field';
+    searchBarEl.style.cssText = 'position:absolute;left:50%;transform:translateX(-50%);top:100%;width:min(320px,80vw);z-index:50;background:var(--bg);border:0.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;box-shadow:0 4px 16px rgba(0,0,0,.08);';
+    hdr.style.position = 'relative';
+    hdr.appendChild(searchBarEl);
+    searchBarEl.focus();
+    searchBarEl.oninput = function() {
+      var q = searchBarEl.value.trim().toLowerCase();
+      indexWrap.querySelectorAll('.branch-row').forEach(function(r) {
+        var txt = r.innerText.toLowerCase();
+        r.style.display = (!q || txt.includes(q)) ? '' : 'none';
+      });
+    };
+    searchBarEl.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') searchBtn.onclick();
+    });
+  };
+  hdr.appendChild(searchBtn);
   wrap.appendChild(hdr);
 
   var now60 = Date.now() - 60000;
@@ -1409,7 +1469,7 @@ function writePage(me) {
   body.appendChild(nickBar);
   var ta = document.createElement('textarea');
   ta.id = 'write-ta';
-  ta.placeholder = '왔다 갔다는 흔적을 남기세요';
+  ta.placeholder = _writeType === 'link' ? '공유를 마크하세요.' : '일상을 마크하세요.';
   ta.style.cssText = 'min-height:calc(100vh - 180px);font-size:13px;';
   if (_writeDraft) ta.value = _writeDraft;
   ta.oninput = function() {
