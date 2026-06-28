@@ -139,18 +139,19 @@
       padding: 10px 20px; display: flex;
       align-items: center; justify-content: space-between;
     }
-    /* 피드 전용: 완전 fixed 고정 헤더 */
-    .feed-fixed-hdr {
-      position: fixed !important; top: 0; z-index: 20;
+    /* 피드 전용: 두 헤더를 묶는 fixed 래퍼 */
+    .feed-hdr-wrap {
+      position: fixed; top: 0; z-index: 20;
       left: 0; right: 0;
     }
     @media (min-width: 768px) {
-      .feed-fixed-hdr {
+      .feed-hdr-wrap {
         left: max(108px, calc((100vw - 960px) / 2));
         right: auto;
         width: min(960px, calc(100vw - max(108px, calc((100vw - 960px) / 2))));
       }
     }
+    .feed-fixed-hdr { position: static !important; }
     .write-pill {
       font-size: 11px; color: var(--text-muted);
       background: none; border: 0.5px solid var(--border);
@@ -299,15 +300,6 @@
       background: var(--bg-surface); border-bottom: 0.5px solid var(--border);
       font-size: 9px; color: var(--text-dim);
       font-family: 'JetBrains Mono', monospace; letter-spacing: .05em;
-      position: fixed; top: 54px; z-index: 19;
-      left: 0; right: 0;
-    }
-    @media (min-width: 768px) {
-      .feed-branch-header {
-        left: max(108px, calc((100vw - 960px) / 2));
-        right: auto;
-        width: min(960px, calc(100vw - max(108px, calc((100vw - 960px) / 2))));
-      }
     }
     .s-hl { background: var(--text); color: var(--bg); border-radius: 2px; padding: 0 1px; }
     .fbh-left  { padding: 5px 12px; text-align: right; }
@@ -349,7 +341,6 @@
     @media (max-width: 767px) {
       .feed-tab-switcher {
         display: flex;
-        position: sticky; top: 54px; z-index: 10;
         background: var(--bg);
         border-bottom: 0.5px solid var(--border);
       }
@@ -966,7 +957,7 @@ function catPickN(n, total, exclude) {
 async function feedPage(me) {
   var wrap = document.createElement('div');
   wrap.className = 'screen';
-  wrap.style.cssText = 'min-height:100vh;padding-bottom:64px;padding-top:82px;';
+  wrap.style.cssText = 'min-height:100vh;padding-bottom:64px;';
 
   var hdr = document.createElement('div');
   hdr.className = 'sticky-header feed-fixed-hdr';
@@ -1079,7 +1070,12 @@ async function feedPage(me) {
     });
   };
   hdr.appendChild(searchBtn);
-  wrap.appendChild(hdr);
+
+  // 두 헤더를 하나의 fixed 래퍼로 묶기 (나중에 colHdr도 여기에 추가됨)
+  var feedHdrWrap = document.createElement('div');
+  feedHdrWrap.className = 'feed-hdr-wrap';
+  feedHdrWrap.appendChild(hdr);
+  wrap.appendChild(feedHdrWrap);
 
   var now60 = Date.now() - 60000;
   var [postsRes, likesRes] = await Promise.all([
@@ -1112,12 +1108,17 @@ async function feedPage(me) {
     btnLink.textContent = 'link mark';
     tabSwitcher.appendChild(btnCasual);
     tabSwitcher.appendChild(btnLink);
-    wrap.appendChild(tabSwitcher);
+    feedHdrWrap.appendChild(tabSwitcher);
 
     var colHdr = document.createElement('div');
     colHdr.className = 'feed-branch-header';
     colHdr.innerHTML = '<div class="fbh-left">casual mark ←</div><div class="fbh-sep"></div><div class="fbh-right">→ link mark</div>';
-    wrap.appendChild(colHdr);
+    feedHdrWrap.appendChild(colHdr);
+
+    // 래퍼 높이만큼 콘텐츠 padding-top 동적 적용
+    requestAnimationFrame(function() {
+      wrap.style.paddingTop = feedHdrWrap.offsetHeight + 'px';
+    });
     var indexWrap = document.createElement('div');
     indexWrap.className = 'feed-branch-wrap';
 
