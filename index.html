@@ -135,7 +135,7 @@
     }
     .sticky-header {
       position: sticky; top: 0; z-index: 10;
-      background: var(--bg); border-bottom: 0.5px solid var(--border);
+      background: var(--bg); border-bottom: none;
       padding: 10px 20px; display: flex;
       align-items: center; justify-content: space-between;
     }
@@ -296,7 +296,7 @@
     /* ── 분기 타임라인 피드 ──────────────────────────────────── */
     .feed-branch-header {
       display: grid; grid-template-columns: 1fr 0.5px 1fr;
-      background: var(--bg-surface); border-bottom: 0.5px solid var(--border);
+      background: var(--bg); border-bottom: 0.5px solid var(--border);
       font-size: 9px; color: var(--text-dim);
       font-family: 'JetBrains Mono', monospace; letter-spacing: .05em;
       position: fixed; top: 54px; z-index: 19;
@@ -317,7 +317,7 @@
       position: relative; padding: 14px 0 14px;
       border: 0.5px solid var(--border);
       border-radius: 20px;
-      margin: 12px 4px 90px;
+      margin: 0 4px 90px;
       overflow: hidden;
     }
     .feed-branch-wrap::before {
