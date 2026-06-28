@@ -1582,7 +1582,7 @@ async function detailPage(pid, me) {
   return wrap;
 }
 
-// ── 마이페이지 ───────────────────────────────────────────────────────
+// ── my page ───────────────────────────────────────────────────────
 async function profilePage(me) {
   var wrap = document.createElement('div');
   wrap.className = 'screen';
@@ -1590,7 +1590,7 @@ async function profilePage(me) {
 
   var hdr = document.createElement('div');
   hdr.className = 'sticky-header';
-  hdr.innerHTML = '<span style="font-size:13px;letter-spacing:.05em;">마이페이지</span>';
+  hdr.innerHTML = '<span style="font-size:13px;letter-spacing:.05em;">my page</span>';
   var logoutBtn = document.createElement('button');
   logoutBtn.className = 'btn-ghost';
   logoutBtn.textContent = '로그아웃';
@@ -1663,33 +1663,12 @@ async function profilePage(me) {
   }
   renderProf(false);
   wrap.appendChild(prof);
-  wrap.appendChild(tabBar('/profile', me));
-  return wrap;
-}
-
-async function myPage(me) {
-  var wrap = document.createElement('div');
-  wrap.className = 'screen';
-  wrap.style.cssText = 'min-height:100vh;padding-bottom:64px;';
-
-  var hdr = document.createElement('div');
-  hdr.className = 'sticky-header';
-  hdr.innerHTML = '<span style="font-size:13px;letter-spacing:.05em;">내 흔적</span>';
-  wrap.appendChild(hdr);
-
-  var now60m = Date.now() - 60000;
-  var [postsRes, likesRes] = await Promise.all([
-    SB.from('posts').select('*').eq('uid', me.uid).or('del.is.null,del.gt.'+now60m).order('at', { ascending: false }),
-    SB.from('likes').select('post_id').eq('uid', me.uid)
-  ]);
-  var posts = postsRes.data || [];
-  var likedSet = new Set((likesRes.data || []).map(function(l){ return l.post_id; }));
 
   // 테마 설정 섹션
   var themeOpts = [
-    { key: 'light',  label: 'light',          svg: _SVG_SUN },
-    { key: 'dark',   label: 'dark',            svg: _SVG_MOON },
-    { key: 'system', label: 'system setting',  svg: _SVG_SYSTEM }
+    { key: 'light',  label: 'light',         svg: _SVG_SUN },
+    { key: 'dark',   label: 'dark',           svg: _SVG_MOON },
+    { key: 'system', label: 'system setting', svg: _SVG_SYSTEM }
   ];
   var themeSec = document.createElement('div');
   themeSec.style.cssText = 'border-bottom:0.5px solid var(--border);padding:4px 0 6px;';
@@ -1735,6 +1714,28 @@ async function myPage(me) {
   }
   renderThemeRows();
   wrap.appendChild(themeSec);
+
+  wrap.appendChild(tabBar('/profile', me));
+  return wrap;
+}
+
+async function myPage(me) {
+  var wrap = document.createElement('div');
+  wrap.className = 'screen';
+  wrap.style.cssText = 'min-height:100vh;padding-bottom:64px;';
+
+  var hdr = document.createElement('div');
+  hdr.className = 'sticky-header';
+  hdr.innerHTML = '<span style="font-size:13px;letter-spacing:.05em;">내 흔적</span>';
+  wrap.appendChild(hdr);
+
+  var now60m = Date.now() - 60000;
+  var [postsRes, likesRes] = await Promise.all([
+    SB.from('posts').select('*').eq('uid', me.uid).or('del.is.null,del.gt.'+now60m).order('at', { ascending: false }),
+    SB.from('likes').select('post_id').eq('uid', me.uid)
+  ]);
+  var posts = postsRes.data || [];
+  var likedSet = new Set((likesRes.data || []).map(function(l){ return l.post_id; }));
 
   var tabLabel = document.createElement('div');
   tabLabel.style.cssText = 'padding:10px 16px;border-bottom:0.5px solid var(--border);font-size:11px;color:var(--text-muted);';
