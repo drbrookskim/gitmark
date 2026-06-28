@@ -897,12 +897,142 @@ async function feedPage(me) {
     wrap.appendChild(colHdr);
     var indexWrap = document.createElement('div');
     indexWrap.className = 'feed-branch-wrap';
+
+    // 고양이 픽셀아트 canvas (데스크탑 전용)
+    var catCanvas = document.createElement('canvas');
+    catCanvas.className = 'center-dot-art';
+    catCanvas.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:1;cursor:pointer;';
+    indexWrap.appendChild(catCanvas);
+
     posts.forEach(function(post) {
       var card = makeCard(post, me, null, likedSet, avatarMap);
       if (card.classList.contains('info')) card.classList.add('tab-hidden');
       indexWrap.appendChild(card);
     });
     wrap.appendChild(indexWrap);
+
+    // 고양이 10종 픽셀아트 씬
+    var CAT_SCENES = [
+      ['.##..##.','########','########','#.##.###','########','.######.','.######.','.######.','##....##','##....##'],
+      ['##.......','#########','##.##.###','#########','.########','..#######','..##...##'],
+      ['......##.','......###','.##...##.','.########','.########','.##.#####','..#......','..#......'],
+      ['..##..##.','.########','.########','..######.','...####..','...####..','########.','########.'],
+      ['.##..##..','.########','.##.##...','.########','.########','#..####.#','#..####.#','#########','#.......#'],
+      ['.##......','.######..','.######..','.##.###..','.######..','.######.#','.######.#','.###.....','....####.','....####.'],
+      ['...##....','..######.','..######.','..##.###.','..######.','#.######.','#..#.....','....#....'],
+      ['.##......','.######..','.######..','.##.###..','.######.','##.#.####','...######','...####..'],
+      ['.##..##.','########','########','#.##.###','########','##.##.##','.######.','.######.','##....##'],
+      ['..##..##','.########','.########','..######.','..######.','####..###','.##....##','...#..#..']
+    ];
+
+    function catMirror(scene) {
+      return scene.map(function(row){ return row.split('').reverse().join(''); });
+    }
+    function catDraw(ctx, scene, sx, sy, sc, alpha) {
+      ctx.fillStyle = 'rgba(40,40,58,' + alpha + ')';
+      scene.forEach(function(row, ry) {
+        for (var c = 0; c < row.length; c++) {
+          if (row[c] === '#') ctx.fillRect(sx + c*sc, sy + ry*sc, sc - 0.5, sc - 0.5);
+        }
+      });
+    }
+    function catPickN(n, total, exclude) {
+      var pool = [];
+      for (var i = 0; i < total; i++) if (exclude.indexOf(i) < 0) pool.push(i);
+      var result = [];
+      while (result.length < n && pool.length) {
+        var ri = Math.floor(Math.random() * pool.length);
+        result.push(pool.splice(ri, 1)[0]);
+      }
+      return result;
+    }
+
+    var catEntries = [], catGroundLines = [], catAnimRaf = null, catAnimating = false;
+    var CAT_SC = 3, CAT_ALPHA = 0.30;
+
+    function catRedraw(ctx, W, offsetFn) {
+      ctx.clearRect(0, 0, W, ctx.canvas.height);
+      catGroundLines.forEach(function(gl) {
+        ctx.fillStyle = 'rgba(40,40,58,0.06)';
+        ctx.fillRect(gl.x, gl.y, gl.w, 1);
+      });
+      catEntries.forEach(function(se) {
+        var off = offsetFn ? offsetFn(se) : {dx:0, dy:0};
+        var scene = (off.mirror) ? catMirror(CAT_SCENES[se.sceneIdx]) : CAT_SCENES[se.sceneIdx];
+        catDraw(ctx, scene, se.origX + off.dx, se.origY + off.dy, CAT_SC, CAT_ALPHA);
+      });
+    }
+
+    // DOM 삽입 후 실제 크기로 고양이 배치
+    requestAnimationFrame(function() {
+      var W = indexWrap.offsetWidth, H = indexWrap.offsetHeight;
+      if (!W || !H) return;
+      catCanvas.width = W; catCanvas.height = H;
+      var ctx = catCanvas.getContext('2d');
+      var CX = W / 2;
+      var usedPrev = [];
+      var cardEls = indexWrap.querySelectorAll('.branch-row');
+
+      cardEls.forEach(function(row) {
+        var top = row.offsetTop, rH = row.offsetHeight;
+        if (rH < 30) return;
+        var isCasual = row.classList.contains('casual');
+        var zoneX = isCasual ? CX + 6 : 6, zoneW = CX - 12;
+        var count = Math.random() < 0.4 ? 3 : 2;
+        var picked = catPickN(count, CAT_SCENES.length, usedPrev.slice(-2));
+        usedPrev = usedPrev.concat(picked).slice(-4);
+        var maxSH = 0;
+        picked.forEach(function(i){ maxSH = Math.max(maxSH, CAT_SCENES[i].length * CAT_SC); });
+        var groundY = top + (rH - maxSH) / 2 + maxSH + 4;
+        var totalW = 0;
+        picked.forEach(function(i){ totalW += CAT_SCENES[i][0].length * CAT_SC; });
+        var gap = Math.max(10, Math.min(24, (zoneW - totalW) / (picked.length + 1)));
+        var curX = zoneX + (zoneW - totalW - gap * (picked.length - 1)) / 2;
+        catGroundLines.push({x: zoneX, y: groundY + 1, w: zoneW});
+        picked.forEach(function(idx) {
+          var scene = CAT_SCENES[idx];
+          var sW = scene[0].length * CAT_SC, sH = scene.length * CAT_SC;
+          var sy = groundY - sH + (Math.random() - 0.5) * 8;
+          catEntries.push({
+            sceneIdx: idx, origX: Math.round(curX), origY: Math.round(sy),
+            groundY: groundY, zoneX: zoneX, zoneW: zoneW, isCasual: isCasual, sW: sW
+          });
+          curX += sW + gap;
+        });
+      });
+
+      catRedraw(ctx, W, null);
+
+      // 클릭/터치 → 2.5초 달리기 애니메이션
+      catCanvas.style.pointerEvents = 'auto';
+      function catStartAnim() {
+        if (catAnimating) return;
+        catAnimating = true;
+        var startT = Date.now(), DURATION = 2500;
+        function frame() {
+          var elapsed = Date.now() - startT;
+          if (elapsed >= DURATION) {
+            catAnimating = false;
+            catRedraw(ctx, W, null);
+            return;
+          }
+          var t = elapsed / DURATION;
+          var ease = t < 0.5 ? 2*t*t : -1 + (4 - 2*t)*t;
+          var moveT = t < 0.8 ? ease * (t / 0.8) : ease * (1 - (t - 0.8) / 0.2);
+          catRedraw(ctx, W, function(se) {
+            var dir = se.isCasual ? 1 : -1;
+            var dx = dir * moveT * se.zoneW * 0.22;
+            var dy = -Math.abs(Math.sin(elapsed / 55 * Math.PI)) * 5;
+            var mirror = (Math.floor(elapsed / 120) % 2 === 0) && dir < 0;
+            return {dx: Math.round(dx), dy: Math.round(dy), mirror: mirror};
+          });
+          catAnimRaf = requestAnimationFrame(frame);
+        }
+        catAnimRaf = requestAnimationFrame(frame);
+      }
+      catCanvas.addEventListener('click', catStartAnim);
+      catCanvas.addEventListener('touchstart', function(e){ e.preventDefault(); catStartAnim(); }, {passive:false});
+    });
 
     btnCasual.onclick = function() {
       _feedTab = 'casual';
