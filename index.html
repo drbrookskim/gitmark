@@ -967,6 +967,7 @@ async function feedPage(me) {
 
   var hdr = document.createElement('div');
   hdr.className = 'sticky-header feed-fixed-hdr';
+  hdr.style.borderBottom = 'none';
   var logoBtn = document.createElement('button');
   logoBtn.style.cssText = 'display:flex;align-items:center;gap:7px;background:none;border:none;cursor:pointer;padding:0;color:var(--text);';
   logoBtn.innerHTML = _SVG_LOGO + '<span style="font-size:13px;letter-spacing:.22em;">gitmark</span>';
