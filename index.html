@@ -349,7 +349,7 @@
     @media (max-width: 767px) {
       .feed-tab-switcher {
         display: flex;
-        position: fixed; top: 54px; left: 0; right: 0; z-index: 10;
+        position: sticky; top: 54px; z-index: 10;
         background: var(--bg);
         border-bottom: 0.5px solid var(--border);
       }
@@ -966,7 +966,7 @@ function catPickN(n, total, exclude) {
 async function feedPage(me) {
   var wrap = document.createElement('div');
   wrap.className = 'screen';
-  wrap.style.cssText = 'min-height:100vh;padding-bottom:64px;padding-top:92px;';
+  wrap.style.cssText = 'min-height:100vh;padding-bottom:64px;padding-top:82px;';
 
   var hdr = document.createElement('div');
   hdr.className = 'sticky-header feed-fixed-hdr';
