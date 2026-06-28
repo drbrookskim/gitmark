@@ -1009,15 +1009,18 @@ async function feedPage(me) {
     hdr.appendChild(searchBarEl);
     searchBarEl.focus();
     function hlApply(container, q) {
-      // 기존 하이라이트 제거
+      // 기존 하이라이트 제거 후 normalize로 분리된 텍스트 노드 병합
       container.querySelectorAll('.s-hl').forEach(function(el) {
-        var txt = document.createTextNode(el.textContent);
-        el.parentNode.replaceChild(txt, el);
+        el.parentNode.replaceChild(document.createTextNode(el.textContent), el);
       });
+      container.normalize();
       if (!q) return;
       var re = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
       var walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, {
-        acceptNode: function(n) { return n.parentNode.nodeName === 'SCRIPT' ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT; }
+        acceptNode: function(n) {
+          var tag = n.parentNode.nodeName;
+          return (tag === 'SCRIPT' || tag === 'STYLE') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
+        }
       });
       var nodes = [];
       while (walker.nextNode()) nodes.push(walker.currentNode);
@@ -1028,13 +1031,23 @@ async function feedPage(me) {
         node.parentNode.replaceChild(span, node);
       });
     }
-    searchBarEl.oninput = function() {
+    var _searchComposing = false;
+    searchBarEl.addEventListener('compositionstart', function() { _searchComposing = true; });
+    searchBarEl.addEventListener('compositionend', function() {
+      _searchComposing = false;
+      searchBarEl.dispatchEvent(new Event('input'));
+    });
+    searchBarEl.oninput = function(e) {
+      if (_searchComposing) return;
       var q = searchBarEl.value.trim().toLowerCase();
       indexWrap.querySelectorAll('.branch-row').forEach(function(r) {
         var txt = r.innerText.toLowerCase();
         var show = !q || txt.includes(q);
         r.style.display = show ? '' : 'none';
         if (show) hlApply(r, q);
+        else r.querySelectorAll('.s-hl').forEach(function(el) {
+          el.parentNode.replaceChild(document.createTextNode(el.textContent), el);
+        });
       });
     };
     searchBarEl.addEventListener('keydown', function(e) {
