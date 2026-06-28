@@ -1006,6 +1006,10 @@ async function feedPage(me) {
           var ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
           var mt = t < 0.8 ? ease*(t/0.8) : ease*(1-(t-0.8)/0.2);
           dx = Math.round(se.anim.dir * mt * se.zoneW * 0.22);
+          // 빈 공간 경계 내로 클램프 (피드 침범 방지)
+          var minDx = se.zoneX - se.origX;
+          var maxDx = se.zoneX + se.zoneW - se.origX - se.sW;
+          dx = Math.max(minDx, Math.min(maxDx, dx));
           dy = Math.round(-Math.abs(Math.sin(el/55*Math.PI))*5);
           mirror = se.anim.dir < 0 && Math.floor(el/120)%2===0;
           if (t >= 1) se.anim = null;
@@ -1052,10 +1056,17 @@ async function feedPage(me) {
         var top = row.offsetTop, rH = row.offsetHeight;
         if (rH < 30) return;
         var isCasual = row.classList.contains('casual');
-        // 왼쪽/중앙/오른쪽 3구역 중 랜덤 선택
-        var zoneIdx = Math.floor(Math.random() * 3);
-        var zoneW = Math.floor(W / 3) - 12;
-        var zoneX = zoneIdx * Math.floor(W / 3) + 6;
+        // 카드 반대편 빈 공간만 사용 (피드 침범 방지)
+        // casual(왼쪽 카드) → 오른쪽 빈 공간, info(오른쪽 카드) → 왼쪽 빈 공간
+        var GAP = 14; // 중앙선·카드 경계 여백
+        var emptyX = isCasual ? CX + GAP : GAP;
+        var emptyW = isCasual ? W - CX - GAP * 2 : CX - GAP * 2;
+        if (emptyW < 60) return;
+        // 빈 공간을 3구역으로 나눠 랜덤 배치
+        var subIdx = Math.floor(Math.random() * 3);
+        var subW = Math.floor(emptyW / 3);
+        var zoneX = emptyX + subIdx * subW;
+        var zoneW = subW;
         var count = 1;
         var picked = catPickN(count, CAT_SPRITES.length, usedPrev.slice(-2));
         usedPrev = usedPrev.concat(picked).slice(-4);
@@ -1064,16 +1075,16 @@ async function feedPage(me) {
         var groundY = top + (rH - maxSH) / 2 + maxSH + 4;
         var totalW = 0;
         picked.forEach(function(i){ totalW += catSpriteSize(i).w; });
-        var gap = Math.max(10, Math.min(24, (zoneW - totalW) / (picked.length + 1)));
-        var curX = zoneX + (zoneW - totalW - gap * (picked.length - 1)) / 2;
-        catGroundLines.push({x: zoneX, y: groundY + 1, w: zoneW});
+        var gap = Math.max(8, Math.min(20, (zoneW - totalW) / (picked.length + 1)));
+        var curX = zoneX + Math.max(0, (zoneW - totalW - gap * (picked.length - 1)) / 2);
+        catGroundLines.push({x: emptyX, y: groundY + 1, w: emptyW});
         picked.forEach(function(idx) {
           var sz = catSpriteSize(idx);
           var sW = sz.w, sH = sz.h;
           var sy = groundY - sH + (Math.random() - 0.5) * 8;
           catEntries.push({
             sceneIdx: idx, origX: Math.round(curX), origY: Math.round(sy),
-            groundY: groundY, zoneX: zoneX, zoneW: zoneW, isCasual: isCasual, sW: sW, sH: sH
+            groundY: groundY, zoneX: emptyX, zoneW: emptyW, isCasual: isCasual, sW: sW, sH: sH
           });
           curX += sW + gap;
         });
