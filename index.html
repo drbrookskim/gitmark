@@ -997,8 +997,9 @@ async function feedPage(me) {
       }, delay || 0);
     }
 
-    // DOM 삽입 후 실제 크기로 고양이 배치
+    // DOM 삽입 후 실제 크기로 고양이 배치 (모바일 제외)
     requestAnimationFrame(function() {
+      if (window.innerWidth < 768) return; // 모바일 미적용
       var W = indexWrap.offsetWidth, H = indexWrap.offsetHeight;
       if (!W || !H) return;
       catCanvas.width = W; catCanvas.height = H;
@@ -1036,26 +1037,29 @@ async function feedPage(me) {
       });
 
       catRedrawAll(ctx, W);
-
-      // 클릭/터치한 고양이 찾기 → 시간차 연쇄 반응
-      catCanvas.style.pointerEvents = 'auto';
+      // 캔버스는 pointer-events:none 유지 — indexWrap에서 이벤트 수신
+      // (.branch-row z-index:2가 canvas z-index:1을 덮기 때문)
 
       function catHandleInteract(mx, my) {
-        // 클릭 위치에 해당하는 고양이 찾기
+        // indexWrap 기준 좌표 → canvas 좌표 변환 (canvas는 indexWrap 상단 기준)
+        var wrapRect = indexWrap.getBoundingClientRect();
+        var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        // canvas 좌표 = 클릭의 문서 좌표 - canvas(=indexWrap) 문서 상단
+        var cx = mx - wrapRect.left;
+        var cy = my + scrollTop - (wrapRect.top + scrollTop);
+
         var hit = null;
         catEntries.forEach(function(se) {
           if (!hit &&
-              mx >= se.origX - 4 && mx <= se.origX + se.sW + 4 &&
-              my >= se.origY - 4 && my <= se.origY + se.sH + 4) {
+              cx >= se.origX - 6 && cx <= se.origX + se.sW + 6 &&
+              cy >= se.origY - 6 && cy <= se.origY + se.sH + 6) {
             hit = se;
           }
         });
         if (!hit) return;
 
-        // 클릭된 고양이 즉시 실행
         catTrigger(hit, ctx, W, 0);
 
-        // 나머지 고양이들 중 1~2마리 랜덤으로 시간차 연쇄
         var others = catEntries.filter(function(se){ return se !== hit && !se.anim; });
         others.sort(function(){ return Math.random() - 0.5; });
         var ripple = Math.min(Math.floor(Math.random() * 2) + 1, others.length);
@@ -1064,16 +1068,13 @@ async function feedPage(me) {
         }
       }
 
-      catCanvas.addEventListener('click', function(e) {
-        var r = catCanvas.getBoundingClientRect();
-        catHandleInteract(e.clientX - r.left, e.clientY - r.top);
+      indexWrap.addEventListener('click', function(e) {
+        catHandleInteract(e.clientX, e.clientY);
       });
-      catCanvas.addEventListener('touchstart', function(e) {
-        e.preventDefault();
-        var r = catCanvas.getBoundingClientRect();
+      indexWrap.addEventListener('touchstart', function(e) {
         var t = e.touches[0];
-        catHandleInteract(t.clientX - r.left, t.clientY - r.top);
-      }, {passive:false});
+        catHandleInteract(t.clientX, t.clientY);
+      }, {passive: true});
     });
 
     btnCasual.onclick = function() {
