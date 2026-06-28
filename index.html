@@ -989,7 +989,7 @@ async function feedPage(me) {
     }
 
     var catEntries = [], catGroundLines = [];
-    var CAT_ALPHA = 0.30;
+    var CAT_ALPHA = 0.18;
     var catRafRunning = false;
 
     function catRedrawAll(ctx, W) {
@@ -1053,7 +1053,7 @@ async function feedPage(me) {
         if (rH < 30) return;
         var isCasual = row.classList.contains('casual');
         var zoneX = isCasual ? CX + 6 : 6, zoneW = CX - 12;
-        var count = Math.random() < 0.4 ? 3 : 2;
+        var count = 1;
         var picked = catPickN(count, CAT_SPRITES.length, usedPrev.slice(-2));
         usedPrev = usedPrev.concat(picked).slice(-4);
         var maxSH = 0;
