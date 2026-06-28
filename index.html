@@ -1052,7 +1052,10 @@ async function feedPage(me) {
         var top = row.offsetTop, rH = row.offsetHeight;
         if (rH < 30) return;
         var isCasual = row.classList.contains('casual');
-        var zoneX = isCasual ? CX + 6 : 6, zoneW = CX - 12;
+        // 왼쪽/중앙/오른쪽 3구역 중 랜덤 선택
+        var zoneIdx = Math.floor(Math.random() * 3);
+        var zoneW = Math.floor(W / 3) - 12;
+        var zoneX = zoneIdx * Math.floor(W / 3) + 6;
         var count = 1;
         var picked = catPickN(count, CAT_SPRITES.length, usedPrev.slice(-2));
         usedPrev = usedPrev.concat(picked).slice(-4);
