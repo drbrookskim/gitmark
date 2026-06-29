@@ -1520,7 +1520,7 @@ function writePage(me) {
   wrap.appendChild(tabBar('/write', me));
 
   var body = document.createElement('div');
-  body.style.cssText = 'padding:14px 16px;flex:1;';
+  body.style.cssText = 'padding:14px 16px;flex:1;display:flex;flex-direction:column;';
 
   var nickBar = document.createElement('div');
   nickBar.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:12px;';
@@ -1567,7 +1567,7 @@ function writePage(me) {
   ta.placeholder = window.innerWidth >= 768
     ? '일상이나 공유를 마크하세요.'
     : (_writeType === 'link' ? '공유를 마크하세요.' : '일상을 마크하세요.');
-  ta.style.cssText = 'min-height:calc(100vh - 180px);font-size:13px;';
+  ta.style.cssText = 'flex:1;font-size:13px;resize:none;min-height:120px;';
   if (_writeDraft) ta.value = _writeDraft;
   ta.oninput = function() {
     _writeDraft = this.value;
@@ -1578,17 +1578,6 @@ function writePage(me) {
     if (btn) { var ok = len>0&&len<=MAX; btn.disabled=!ok; btn.style.opacity=ok?'1':'.3'; }
   };
   body.appendChild(ta);
-
-  // 남기기 버튼 + 글자 수 — textarea 바로 아래 우측 정렬
-  var submitRow = document.createElement('div');
-  submitRow.style.cssText = 'display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:10px;';
-  var bodyCnt = document.createElement('span');
-  bodyCnt.id = 'w-cnt';
-  bodyCnt.style.cssText = 'font-size:11px;color:var(--text-muted);min-width:28px;text-align:right;';
-  bodyCnt.textContent = MAX;
-  submitRow.appendChild(bodyCnt);
-  submitRow.appendChild(submitBtn);
-  body.appendChild(submitRow);
 
   // 고양이 canvas: body 수직 중앙, 수평 전체 너비 오버레이
   body.style.position = 'relative';
@@ -1691,8 +1680,13 @@ function writePage(me) {
   }
 
   var barRow = document.createElement('div');
-  barRow.innerHTML = '<div style="height:3px;background:var(--bg-elevated);border-radius:2px;overflow:hidden;"><div id="w-bar" style="height:100%;width:0;background:var(--text-muted);border-radius:2px;transition:width .1s,background .1s;"></div></div>';
+  barRow.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:8px;';
+  barRow.innerHTML = '<div style="flex:1;height:3px;background:var(--bg-elevated);border-radius:2px;overflow:hidden;"><div id="w-bar" style="height:100%;width:0;background:var(--text-muted);border-radius:2px;transition:width .1s,background .1s;"></div></div><span id="w-cnt" style="font-size:11px;color:var(--text-muted);min-width:28px;text-align:right;">'+MAX+'</span>';
+  var submitRow = document.createElement('div');
+  submitRow.style.cssText = 'display:flex;justify-content:flex-end;';
+  submitRow.appendChild(submitBtn);
   footer.appendChild(barRow);
+  footer.appendChild(submitRow);
   wrap.appendChild(footer);
 
   setTimeout(function() { var ta=document.getElementById('write-ta'); if(ta) ta.focus(); }, 50);
