@@ -973,11 +973,14 @@ async function feedPage(me) {
   logoBtn.innerHTML = _SVG_LOGO + '<span style="font-size:13px;letter-spacing:.22em;">gitmark</span>';
   logoBtn.onclick = function() { R.go('/'); };
   hdr.appendChild(logoBtn);
+  // +mark 와 검색 버튼을 함께 묶어 오른쪽 정렬
+  var hdrActions = document.createElement('div');
+  hdrActions.style.cssText = 'display:flex;align-items:center;gap:6px;';
   var writeBtn = document.createElement('button');
   writeBtn.className = 'write-pill';
   writeBtn.textContent = '+ mark';
   writeBtn.onclick = function() { _writeType = _feedTab; R.go('/write'); };
-  hdr.appendChild(writeBtn);
+  hdrActions.appendChild(writeBtn);
 
   // 검색 버튼
   var searchBtn = document.createElement('button');
@@ -1076,7 +1079,8 @@ async function feedPage(me) {
       if (e.key === 'Escape') searchBtn.onclick();
     });
   };
-  hdr.appendChild(searchBtn);
+  hdrActions.appendChild(searchBtn);
+  hdr.appendChild(hdrActions);
 
   // 두 헤더를 하나의 fixed 래퍼로 묶기 (나중에 colHdr도 여기에 추가됨)
   var feedHdrWrap = document.createElement('div');
@@ -1512,7 +1516,16 @@ function writePage(me) {
     R.go('/');
   };
   hdr.appendChild(cancelBtn);
-  hdr.appendChild(submitBtn);
+  // 남기기 버튼 + 글자 수 카운트 묶음
+  var submitGroup = document.createElement('div');
+  submitGroup.style.cssText = 'display:flex;flex-direction:column;align-items:flex-end;gap:2px;';
+  submitGroup.appendChild(submitBtn);
+  var hdrCnt = document.createElement('span');
+  hdrCnt.id = 'w-cnt';
+  hdrCnt.style.cssText = 'font-size:10px;color:var(--text-muted);min-width:28px;text-align:right;';
+  hdrCnt.textContent = MAX;
+  submitGroup.appendChild(hdrCnt);
+  hdr.appendChild(submitGroup);
   wrap.appendChild(hdr);
   wrap.appendChild(tabBar('/write', me));
 
@@ -1575,12 +1588,19 @@ function writePage(me) {
     if (btn) { var ok = len>0&&len<=MAX; btn.disabled=!ok; btn.style.opacity=ok?'1':'.3'; }
   };
   body.appendChild(ta);
+
+  // 고양이 canvas: body 수직 중앙, 수평 전체 너비 오버레이
+  body.style.position = 'relative';
+  var wcCv = document.createElement('canvas');
+  wcCv.style.cssText = 'position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);width:100%;cursor:pointer;touch-action:manipulation;z-index:2;pointer-events:auto;';
+  body.appendChild(wcCv);
+
   wrap.appendChild(body);
 
   var footer = document.createElement('div');
-  footer.style.cssText = 'position:sticky;bottom:0;background:var(--bg);border-top:1px solid var(--border);padding:8px 16px 10px;';
+  footer.style.cssText = 'position:sticky;bottom:0;background:var(--bg);border-top:0.5px solid var(--border);padding:10px 16px 12px;';
 
-  // 카운트 바 위에 랜덤 고양이 (클릭 시 달리기, 모바일+데스크탑)
+  // 고양이 애니메이션 (body 중앙 canvas)
   {
     var WC_SCALE = 1.6;
     var WC_ALPHA = 0.12;
@@ -1589,19 +1609,15 @@ function writePage(me) {
     var WC_SPEED = 52;
     var WC_DUR = 2600;
 
-    var wcIdx = Math.floor(Math.random() * CAT_SPRITES.length); // 정적 포즈
+    var wcIdx = Math.floor(Math.random() * CAT_SPRITES.length);
     var wcSz0 = catSpriteSize(wcIdx);
     var wcH = Math.round(wcSz0.h * WC_SCALE) + 6;
 
-    var wcCv = document.createElement('canvas');
-    wcCv.style.cssText = 'display:block;width:100%;cursor:pointer;touch-action:manipulation;';
-    footer.appendChild(wcCv);
-
-    // 레이아웃 후 실제 너비 확정
     requestAnimationFrame(function() {
       var CW = wcCv.offsetWidth || (window.innerWidth - 32);
       wcCv.width  = CW;
       wcCv.height = wcH;
+      wcCv.style.height = wcH + 'px';
       var ctx2 = wcCv.getContext('2d');
 
       var wc = {
@@ -1674,8 +1690,7 @@ function writePage(me) {
   }
 
   var barRow = document.createElement('div');
-  barRow.style.cssText = 'display:flex;align-items:center;gap:10px;';
-  barRow.innerHTML = '<div style="flex:1;height:3px;background:var(--bg-elevated);border-radius:2px;overflow:hidden;"><div id="w-bar" style="height:100%;width:0;background:var(--text-muted);border-radius:2px;transition:width .1s,background .1s;"></div></div><span id="w-cnt" style="font-size:11px;color:var(--text-muted);min-width:28px;text-align:right;">'+MAX+'</span>';
+  barRow.innerHTML = '<div style="height:3px;background:var(--bg-elevated);border-radius:2px;overflow:hidden;"><div id="w-bar" style="height:100%;width:0;background:var(--text-muted);border-radius:2px;transition:width .1s,background .1s;"></div></div>';
   footer.appendChild(barRow);
   wrap.appendChild(footer);
 
