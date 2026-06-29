@@ -1562,12 +1562,18 @@ function writePage(me) {
   }
   renderWriteNick(false);
   body.appendChild(nickBar);
+
+  // textarea + 남기기/카운트/고양이를 하나의 relative 래퍼로 묶기
+  var taWrap = document.createElement('div');
+  taWrap.style.cssText = 'position:relative;flex:1;display:flex;flex-direction:column;';
+
   var ta = document.createElement('textarea');
   ta.id = 'write-ta';
   ta.placeholder = window.innerWidth >= 768
     ? '일상이나 공유를 마크하세요.'
     : (_writeType === 'link' ? '공유를 마크하세요.' : '일상을 마크하세요.');
-  ta.style.cssText = 'flex:1;font-size:13px;resize:none;min-height:120px;';
+  // 오른쪽에 남기기 버튼 공간 확보
+  ta.style.cssText = 'flex:1;font-size:13px;resize:none;min-height:120px;padding-right:80px;background:transparent;border:none;outline:none;width:100%;';
   if (_writeDraft) ta.value = _writeDraft;
   ta.oninput = function() {
     _writeDraft = this.value;
@@ -1577,13 +1583,28 @@ function writePage(me) {
     if (cnt) { cnt.textContent = rem; cnt.style.color = len>MAX?'#f87171':rem<20?'#eab308':'var(--text-muted)'; }
     if (btn) { var ok = len>0&&len<=MAX; btn.disabled=!ok; btn.style.opacity=ok?'1':'.3'; }
   };
-  body.appendChild(ta);
+  taWrap.appendChild(ta);
 
-  // 고양이 canvas: body 수직 중앙, 수평 전체 너비 오버레이
-  body.style.position = 'relative';
+  // 남기기 버튼: placeholder 첫 줄 오른쪽 끝
+  submitBtn.style.position = 'absolute';
+  submitBtn.style.top = '0';
+  submitBtn.style.right = '0';
+  submitBtn.style.zIndex = '3';
+  taWrap.appendChild(submitBtn);
+
+  // 글자 수: placeholder 바로 아래 왼쪽
+  var cntEl = document.createElement('span');
+  cntEl.id = 'w-cnt';
+  cntEl.style.cssText = 'position:absolute;top:22px;left:0;font-size:11px;color:var(--text-muted);pointer-events:none;z-index:3;';
+  cntEl.textContent = MAX;
+  taWrap.appendChild(cntEl);
+
+  // 고양이 canvas: taWrap 수직 중앙
   var wcCv = document.createElement('canvas');
   wcCv.style.cssText = 'position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);width:100%;cursor:pointer;touch-action:manipulation;z-index:2;pointer-events:auto;';
-  body.appendChild(wcCv);
+  taWrap.appendChild(wcCv);
+
+  body.appendChild(taWrap);
 
   wrap.appendChild(body);
 
@@ -1680,13 +1701,8 @@ function writePage(me) {
   }
 
   var barRow = document.createElement('div');
-  barRow.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:8px;';
-  barRow.innerHTML = '<div style="flex:1;height:3px;background:var(--bg-elevated);border-radius:2px;overflow:hidden;"><div id="w-bar" style="height:100%;width:0;background:var(--text-muted);border-radius:2px;transition:width .1s,background .1s;"></div></div><span id="w-cnt" style="font-size:11px;color:var(--text-muted);min-width:28px;text-align:right;">'+MAX+'</span>';
-  var submitRow = document.createElement('div');
-  submitRow.style.cssText = 'display:flex;justify-content:flex-end;';
-  submitRow.appendChild(submitBtn);
+  barRow.innerHTML = '<div style="height:3px;background:var(--bg-elevated);border-radius:2px;overflow:hidden;"><div id="w-bar" style="height:100%;width:0;background:var(--text-muted);border-radius:2px;transition:width .1s,background .1s;"></div></div>';
   footer.appendChild(barRow);
-  footer.appendChild(submitRow);
   wrap.appendChild(footer);
 
   setTimeout(function() { var ta=document.getElementById('write-ta'); if(ta) ta.focus(); }, 50);
