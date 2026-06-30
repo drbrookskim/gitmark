@@ -1723,13 +1723,32 @@ function writePage(me) {
   var toolRow = document.createElement('div');
   toolRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 16px 4px;';
   var tools = document.createElement('div');
-  tools.style.cssText = 'display:flex;gap:9px;';
-  ['⌖','🔗','#'].forEach(function(icon) {
-    var t = document.createElement('span');
-    t.textContent = icon;
-    t.style.cssText = 'font-size:17px;color:var(--text-muted);cursor:pointer;';
-    tools.appendChild(t);
-  });
+  tools.style.cssText = 'display:flex;gap:9px;align-items:center;';
+
+  // ⌖ 위치 버튼 (기존 유지)
+  var locBtn = document.createElement('span');
+  locBtn.textContent = '⌖';
+  locBtn.style.cssText = 'font-size:17px;color:var(--text-muted);cursor:pointer;';
+  tools.appendChild(locBtn);
+
+  // # 해시태그 버튼
+  var hashBtn = document.createElement('span');
+  hashBtn.textContent = '#';
+  hashBtn.style.cssText = 'font-size:15px;font-weight:700;font-family:\'JetBrains Mono\',monospace;color:var(--text-muted);cursor:pointer;padding:2px 6px;border-radius:6px;transition:background .12s,color .12s;';
+  hashBtn.onmouseenter = function() { this.style.background = 'var(--bg-surface)'; this.style.color = 'var(--accent)'; };
+  hashBtn.onmouseleave = function() { this.style.background = ''; this.style.color = 'var(--text-muted)'; };
+  hashBtn.onclick = function() {
+    var start = ta.selectionStart, end = ta.selectionEnd;
+    var val = ta.value;
+    // 커서 앞이 공백이거나 시작이면 바로 #, 아니면 공백 + #
+    var prefix = (start === 0 || /\s/.test(val[start - 1])) ? '#' : ' #';
+    ta.value = val.slice(0, start) + prefix + val.slice(end);
+    var pos = start + prefix.length;
+    ta.setSelectionRange(pos, pos);
+    ta.focus();
+    ta.dispatchEvent(new Event('input'));
+  };
+  tools.appendChild(hashBtn);
   var hint = document.createElement('span');
   hint.style.cssText = 'font:400 10px \'JetBrains Mono\',monospace;color:var(--text-dim);';
   hint.textContent = '흔적은 사라지지 않아요';
