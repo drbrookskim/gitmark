@@ -345,7 +345,9 @@
     .fbh-right { padding: 13px 16px; }
     .feed-branch-wrap {
       position: relative; padding: 16px 0 16px;
-      margin: 0 0 90px;
+      margin: 8px 0 90px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
       background-image: radial-gradient(circle, rgba(100,130,200,.16) 1.1px, transparent 1.1px);
       background-size: 19px 19px;
       overflow: hidden;
@@ -393,6 +395,8 @@
     }
     .feed-tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
     @media (max-width: 767px) {
+      .feed-index-wrap { padding: 0; }
+      .feed-branch-wrap { border: none; border-radius: 0; margin: 0 0 90px; }
       .feed-tab-switcher {
         display: flex;
         background: var(--paper);
