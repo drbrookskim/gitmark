@@ -8,37 +8,37 @@
   <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    /* ── 라이트 (기본) ──────────────────────────────────────────── */
+    /* ── 라이트 (기본) — 주광색 ─────────────────────────────────── */
     :root {
-      --paper:      #FCFBF6;
-      --bg:         #E9E6DD;
-      --bg-surface: #F5F3EE;
-      --bg-elevated:#EAE6DC;
-      --border:     #E0DBCD;
-      --border-sub: #EAE6DC;
-      --accent:     #0E9080;
-      --rail:       #B8B2A8;
-      --text:       #23211C;
-      --text-muted: #A09A8C;
-      --text-dim:   #C4BFB2;
-      --text-body:  #3C3830;
-      --text-faint: #A09A8C;
+      --paper:      #F8FAFF;
+      --bg:         #EDF0FA;
+      --bg-surface: #F3F5FD;
+      --bg-elevated:#E6EAF5;
+      --border:     #D2D9EC;
+      --border-sub: #DDE3F2;
+      --accent:     #2060C8;
+      --rail:       #98AACC;
+      --text:       #1A1F38;
+      --text-muted: #6070A0;
+      --text-dim:   #9AAAC8;
+      --text-body:  #283060;
+      --text-faint: #8090B8;
     }
-    /* ── 다크 ───────────────────────────────────────────────────── */
+    /* ── 다크 — 주광색 쿨톤 ─────────────────────────────────────── */
     body.dark {
-      --paper:      #1C1B18;
-      --bg:         #111110;
-      --bg-surface: #1E1D1A;
-      --bg-elevated:#252420;
-      --border:     #2E2C28;
-      --border-sub: #242220;
-      --accent:     #0E9080;
-      --rail:       #3A3835;
-      --text:       #E8E5DF;
-      --text-muted: #6A6560;
-      --text-dim:   #3A3835;
-      --text-body:  #C4BFB2;
-      --text-faint: #5A5550;
+      --paper:      #16182A;
+      --bg:         #0D0F1E;
+      --bg-surface: #1A1C30;
+      --bg-elevated:#22253A;
+      --border:     #2A2E48;
+      --border-sub: #1E2138;
+      --accent:     #4080E0;
+      --rail:       #3A4468;
+      --text:       #E0E4F8;
+      --text-muted: #6878A8;
+      --text-dim:   #38405C;
+      --text-body:  #B0BCDC;
+      --text-faint: #4A5270;
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -59,7 +59,7 @@
     body::before {
       content: '';
       position: fixed; inset: 0; z-index: 0; pointer-events: none;
-      background-image: radial-gradient(circle, rgba(157,151,138,.20) 1.1px, transparent 1.1px);
+      background-image: radial-gradient(circle, rgba(100,130,200,.16) 1.1px, transparent 1.1px);
       background-size: 19px 19px;
     }
     #app {
@@ -152,7 +152,7 @@
     .feed-fixed-hdr { position: static !important; }
     .write-pill {
       font-size: 13px; font-weight: 700;
-      color: #FCFBF6;
+      color: #F0F4FF;
       background: var(--accent);
       border: none;
       border-radius: 100px; padding: 6px 16px; cursor: pointer;
@@ -209,7 +209,7 @@
       background: var(--bg-elevated);
       transition: color .15s, border-color .15s, background .15s;
     }
-    .like-btn.liked { color: var(--accent); border-color: var(--accent); background: rgba(14,144,128,.08); }
+    .like-btn.liked { color: var(--accent); border-color: var(--accent); background: rgba(32,96,200,.08); }
 
     /* ── 새 카드 스타일 ─────────────────────────────────────────── */
     .gcard {
@@ -217,11 +217,11 @@
       border: 1px solid var(--border);
       border-radius: 14px;
       position: relative;
-      box-shadow: 0 3px 12px -6px rgba(40,30,15,.18);
+      box-shadow: 0 3px 12px -6px rgba(20,30,70,.12);
       cursor: pointer;
       transition: box-shadow .15s;
     }
-    .gcard:hover { box-shadow: 0 4px 16px -6px rgba(40,30,15,.28); }
+    .gcard:hover { box-shadow: 0 4px 16px -6px rgba(20,30,70,.20); }
     .gcard.lnk { border-top: 3px solid var(--text); }
     .gcard .gnode {
       position: absolute; left: -22px; top: 22px;
@@ -243,7 +243,7 @@
     .gc-foot .gc-stat { display: flex; align-items: center; gap: 11px; margin-left: auto; }
     .gc-foot .gc-stat span { display: inline-flex; align-items: center; gap: 4px; }
     .gc-like-btn { cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-family: 'Inter','Noto Sans KR',sans-serif; padding: 2px 9px; border-radius: 100px; border: 1px solid transparent; background: transparent; color: var(--text-muted); transition: all .15s; }
-    .gc-like-btn.liked { color: var(--accent); background: rgba(14,144,128,.10); border-color: rgba(14,144,128,.28); }
+    .gc-like-btn.liked { color: var(--accent); background: rgba(32,96,200,.10); border-color: rgba(32,96,200,.28); }
     /* URL tab above link card */
     .gurl-tab { font: 500 10.5px 'JetBrains Mono',monospace; color: var(--text-muted); background: var(--bg-surface); border: 1px solid var(--border); border-bottom: none; border-radius: 9px 9px 0 0; padding: 4px 12px; margin-left: 16px; display: inline-block; max-width: 78%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .gcard-wrap { display: flex; flex-direction: column; align-items: flex-start; }
@@ -346,15 +346,15 @@
     .feed-branch-wrap {
       position: relative; padding: 16px 0 16px;
       margin: 0 0 90px;
-      background-image: radial-gradient(circle, rgba(157,151,138,.20) 1.1px, transparent 1.1px);
+      background-image: radial-gradient(circle, rgba(100,130,200,.16) 1.1px, transparent 1.1px);
       background-size: 19px 19px;
       overflow: hidden;
     }
     .feed-branch-wrap::before {
       content: ''; position: absolute; left: 50%; top: 0; bottom: 0;
-      border-left: 2px dotted #B8B2A8; pointer-events: none; z-index: 0;
+      border-left: 2px dotted #98AACC; pointer-events: none; z-index: 0;
     }
-    .feed-branch-wrap.tab-link-active::before { left: auto; right: 5px; border-left: none; border-right: 2px dotted #B8B2A8; }
+    .feed-branch-wrap.tab-link-active::before { left: auto; right: 5px; border-left: none; border-right: 2px dotted #98AACC; }
     .branch-row {
       display: flex; margin-bottom: 15px; position: relative; z-index: 1;
     }
@@ -400,9 +400,9 @@
       }
       .feed-branch-header { display: none; }
       .feed-branch-wrap::before {
-        left: 5px; border-left: 2px dotted #B8B2A8;
+        left: 5px; border-left: 2px dotted #98AACC;
       }
-      .feed-branch-wrap.tab-link-active::before { left: auto; right: 5px; border-left: none; border-right: 2px dotted #B8B2A8; }
+      .feed-branch-wrap.tab-link-active::before { left: auto; right: 5px; border-left: none; border-right: 2px dotted #98AACC; }
       .branch-row.casual {
         padding-left: 28px; padding-right: 10px;
       }
@@ -1116,7 +1116,7 @@ async function feedPage(me) {
     });
     var indexWrap = document.createElement('div');
     indexWrap.className = 'feed-branch-wrap';
-    indexWrap.style.backgroundImage = 'radial-gradient(circle,rgba(157,151,138,.20) 1.1px,transparent 1.1px)';
+    indexWrap.style.backgroundImage = 'radial-gradient(circle,rgba(100,130,200,.16) 1.1px,transparent 1.1px)';
     indexWrap.style.backgroundSize = '19px 19px';
 
     // 고양이 픽셀아트 canvas (데스크탑 전용)
@@ -1206,7 +1206,7 @@ async function feedPage(me) {
       function catDrawStatic() {
         ctx.clearRect(0, 0, W, ctx.canvas.height);
         catGroundLines.forEach(function(gl) {
-          ctx.fillStyle = 'rgba(40,40,58,0.06)';
+          ctx.fillStyle = 'rgba(32,60,160,0.06)';
           ctx.fillRect(gl.x, gl.y, gl.w, 1);
         });
         catEntries.forEach(function(se) {
@@ -1222,7 +1222,7 @@ async function feedPage(me) {
 
         ctx.clearRect(0, 0, W, ctx.canvas.height);
         catGroundLines.forEach(function(gl) {
-          ctx.fillStyle = 'rgba(40,40,58,0.06)';
+          ctx.fillStyle = 'rgba(32,60,160,0.06)';
           ctx.fillRect(gl.x, gl.y, gl.w, 1);
         });
 
@@ -1520,7 +1520,7 @@ function writePage(me) {
   submitBtn.id = 'submit-btn';
   submitBtn.textContent = '남기기';
   submitBtn.disabled = true;
-  submitBtn.style.cssText = 'font:700 13px \'Inter\',\'Noto Sans KR\',sans-serif;color:#FCFBF6;background:var(--accent);border:none;border-radius:100px;padding:7px 18px;cursor:pointer;opacity:.3;';
+  submitBtn.style.cssText = 'font:700 13px \'Inter\',\'Noto Sans KR\',sans-serif;color:#F0F4FF;background:var(--accent);border:none;border-radius:100px;padding:7px 18px;cursor:pointer;opacity:.3;';
   submitBtn.onclick = async function() {
     var ta = document.getElementById('write-ta');
     if (!ta) return;
