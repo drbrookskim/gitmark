@@ -218,7 +218,6 @@
       border-radius: 14px;
       position: relative;
       box-shadow: 0 3px 12px -6px rgba(40,30,15,.18);
-      overflow: hidden;
       cursor: pointer;
       transition: box-shadow .15s;
     }
@@ -229,7 +228,8 @@
       width: 9px; height: 9px; border-radius: 50%;
       background: var(--rail); z-index: 3;
     }
-    .gcards-right .gcard .gnode { left: auto; right: -22px; }
+    /* 모바일 link 탭: 닷 우측 */
+    .branch-row.info .gcard .gnode { left: auto; right: -22px; }
     .gc-body { padding: 14px 15px 12px; }
     .gc-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
     .gc-av { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font: 700 11px 'IBM Plex Mono',monospace; color: #fff; flex-shrink: 0; }
@@ -358,21 +358,27 @@
     .branch-row {
       display: flex; margin-bottom: 15px; position: relative; z-index: 1;
     }
-    .branch-row::before {
-      content: ''; position: absolute; top: 22px;
-      width: 9px; height: 9px; border-radius: 50%;
-      background: var(--rail); z-index: 2;
-    }
     .branch-row.casual {
       justify-content: flex-start;
       padding-left: 14px; padding-right: calc(50% + 10px);
     }
-    .branch-row.casual::before { left: 14px; }
     .branch-row.info {
       justify-content: flex-end;
       padding-right: 14px; padding-left: calc(50% + 10px);
     }
-    .branch-row.info::before { left: auto; right: 14px; }
+    /* 데스크탑: casual 닷 우측(중앙 방향), info 닷 좌측(중앙 방향) */
+    @media (min-width: 768px) {
+      .branch-row.casual .gcard .gnode { left: auto; right: -30px; top: 22px; }
+      .branch-row.info   .gcard .gnode { left: -30px; right: auto; top: 22px; }
+      .branch-row.casual .gcard::after {
+        content: ''; position: absolute; top: 26px; right: -26px;
+        width: 26px; border-top: 2px dotted var(--rail);
+      }
+      .branch-row.info .gcard::after {
+        content: ''; position: absolute; top: 26px; left: -26px;
+        width: 26px; border-top: 2px dotted var(--rail);
+      }
+    }
     .branch-tile-wrap { flex: 1; min-width: 0; }
     .tile.info-tile { border-color: var(--border-sub); }
     /* ── 모바일 피드 탭 스타일 ──────────────────────────────── */
@@ -953,7 +959,6 @@ async function feedPage(me) {
 
   var hdr = document.createElement('div');
   hdr.className = 'sticky-header feed-fixed-hdr';
-  hdr.style.borderBottom = 'none';
   var logoBtn = document.createElement('button');
   logoBtn.style.cssText = 'display:flex;align-items:center;gap:8px;background:none;border:none;cursor:pointer;padding:0;color:var(--text);';
   logoBtn.innerHTML = _SVG_LOGO + '<span style="font:700 18px \'Inter\',\'Noto Sans KR\',sans-serif;color:var(--text);letter-spacing:-.01em;">gitmark</span>';
