@@ -253,7 +253,8 @@
     .gc-like-btn { cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-family: 'Inter','Noto Sans KR',sans-serif; padding: 2px 9px; border-radius: 100px; border: 1px solid transparent; background: transparent; color: var(--text-muted); transition: all .15s; }
     .gc-like-btn.liked { color: var(--accent); background: rgba(0,117,74,.10); border-color: rgba(0,117,74,.28); }
     /* URL tab above link card */
-    .gurl-tab { font: 500 10.5px 'JetBrains Mono',monospace; color: var(--text-muted); background: var(--bg-surface); border: 1px solid var(--border); border-bottom: none; border-radius: 9px 9px 0 0; padding: 4px 12px; margin-left: 16px; display: inline-block; max-width: 78%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .gurl-tab { font: 500 10.5px 'JetBrains Mono',monospace; color: var(--text-muted); background: var(--bg-surface); border: 1px solid var(--border); border-bottom: none; border-radius: 9px 9px 0 0; padding: 4px 12px; margin-left: 16px; display: inline-block; max-width: 78%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+    .gurl-tab:hover { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
     .gcard-wrap { display: flex; flex-direction: column; align-items: flex-start; }
     .del-btn { background: none; border: none; cursor: pointer; padding: 0; font-size: 11px; color: var(--text-dim); transition: color .15s; }
     .del-btn:hover { color: #f87171; }
@@ -1446,6 +1447,10 @@ function makeCard(post, me, idx, likedSet, avatarMap) {
     var urlTab = document.createElement('span');
     urlTab.className = 'gurl-tab';
     urlTab.textContent = dispUrl;
+    urlTab.onclick = function(e) {
+      e.stopPropagation();
+      window.open(url, '_blank', 'noopener,noreferrer');
+    };
     tileWrap.appendChild(urlTab);
   }
 
