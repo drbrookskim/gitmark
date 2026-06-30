@@ -1508,8 +1508,9 @@ function makeCard(post, me, idx, likedSet, avatarMap) {
     // 좌하: 댓글
     '<button class="gc-icon-btn" id="cmtbtn-'+post.id+'">💬 <span id="cmtcnt-'+post.id+'">'+cmtCount+'</span></button>',
     '<div class="gc-foot-spacer"></div>',
-    // 우하: 공유, 좋아요, 삭제
-    '<button class="gc-icon-btn" id="shbtn-'+post.id+'" title="공유">↗</button>',
+    // 우하: X, Threads, 좋아요, 삭제
+    '<button class="gc-icon-btn" id="xbtn-'+post.id+'" title="X(트위터)에 공유" style="font:700 11px \'JetBrains Mono\',monospace;">𝕏</button>',
+    '<button class="gc-icon-btn" id="thbtn-'+post.id+'" title="Threads에 공유" style="font:500 11px \'Inter\',sans-serif;letter-spacing:-.01em;">⊚</button>',
     likeHtml,
     me.uid===post.uid ? '<button class="del-btn" id="delbtn-'+post.id+'">삭제</button>' : '',
     '</div>'
@@ -1583,19 +1584,19 @@ function makeCard(post, me, idx, likedSet, avatarMap) {
     e.stopPropagation();
     inkTransition(e.clientX, e.clientY, function() { R.go('/post/'+post.id); });
   };
-  // 공유 버튼
-  tile.querySelector('#shbtn-'+post.id).onclick = function(e) {
+  // X(트위터) 공유
+  tile.querySelector('#xbtn-'+post.id).onclick = function(e) {
     e.stopPropagation();
     var shareUrl = location.origin + location.pathname + '#/post/' + post.id;
-    if (navigator.share) {
-      navigator.share({ title: 'gitmark', text: post.txt.slice(0, 60), url: shareUrl });
-    } else {
-      navigator.clipboard.writeText(shareUrl).then(function() {
-        var btn = tile.querySelector('#shbtn-'+post.id);
-        btn.textContent = '✓';
-        setTimeout(function() { btn.textContent = '↗'; }, 1500);
-      });
-    }
+    var text = encodeURIComponent(post.txt.slice(0, 200) + '… ' + shareUrl);
+    window.open('https://x.com/intent/tweet?text=' + text, '_blank', 'noopener,noreferrer');
+  };
+  // Threads 공유
+  tile.querySelector('#thbtn-'+post.id).onclick = function(e) {
+    e.stopPropagation();
+    var shareUrl = location.origin + location.pathname + '#/post/' + post.id;
+    var text = encodeURIComponent(post.txt.slice(0, 200) + '… ' + shareUrl);
+    window.open('https://www.threads.net/intent/post?text=' + text, '_blank', 'noopener,noreferrer');
   };
   tile.onclick = function(e) {
     inkTransition(e.clientX, e.clientY, function() { R.go('/post/'+post.id); });
@@ -1641,7 +1642,9 @@ function writePage(me) {
     submitBtn.style.opacity = '.3';
     var now = Date.now();
     var allTags = extractTags(txt).concat(_writeTags).filter(function(t,i,a){ return a.indexOf(t)===i; });
-    await SB.from('posts').insert({ id: mkId(), uid: me.uid, nick: me.nick, pseudo: me.pseudo, txt: txt, tags: allTags, at: now, upd: now, likes_count: 0, comments_count: 0 });
+    var postNick = anonOn ? '익명' : me.nick;
+    var postPseudo = anonOn ? true : me.pseudo;
+    await SB.from('posts').insert({ id: mkId(), uid: me.uid, nick: postNick, pseudo: postPseudo, txt: txt, tags: allTags, at: now, upd: now, likes_count: 0, comments_count: 0 });
     _writeTags = [];
     _writeDraft = '';
     R.go('/');
