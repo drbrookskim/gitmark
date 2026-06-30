@@ -1507,6 +1507,10 @@ function makeCard(post, me, idx, likedSet, avatarMap) {
     '<div class="gc-foot">',
     // 좌하: 댓글
     '<button class="gc-icon-btn" id="cmtbtn-'+post.id+'">💬 <span id="cmtcnt-'+post.id+'">'+cmtCount+'</span></button>',
+    // 댓글 오른쪽: 해시태그
+    (post.tags && post.tags.length ? post.tags.map(function(t){
+      return '<span onclick="event.stopPropagation();_setTagFilter(\''+esc(t)+'\')" style="font:600 10px \'JetBrains Mono\',monospace;color:var(--accent);cursor:pointer;padding:2px 6px;border-radius:100px;background:rgba(0,117,74,.08);white-space:nowrap;">#'+esc(t)+'</span>';
+    }).join('') : ''),
     '<div class="gc-foot-spacer"></div>',
     // 우하: X, Threads, 좋아요, 삭제
     '<button class="gc-icon-btn" id="xbtn-'+post.id+'" title="X(트위터)에 공유" style="font:700 11px \'JetBrains Mono\',monospace;">𝕏</button>',
