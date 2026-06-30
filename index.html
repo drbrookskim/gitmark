@@ -1640,7 +1640,9 @@ function writePage(me) {
     submitBtn.disabled = true;
     submitBtn.style.opacity = '.3';
     var now = Date.now();
-    await SB.from('posts').insert({ id: mkId(), uid: me.uid, nick: me.nick, pseudo: me.pseudo, txt: txt, tags: extractTags(txt), at: now, upd: now, likes_count: 0, comments_count: 0 });
+    var allTags = extractTags(txt).concat(_writeTags).filter(function(t,i,a){ return a.indexOf(t)===i; });
+    await SB.from('posts').insert({ id: mkId(), uid: me.uid, nick: me.nick, pseudo: me.pseudo, txt: txt, tags: allTags, at: now, upd: now, likes_count: 0, comments_count: 0 });
+    _writeTags = [];
     _writeDraft = '';
     R.go('/');
   };
@@ -1686,18 +1688,39 @@ function writePage(me) {
   var body = document.createElement('div');
   body.style.cssText = 'padding:12px 16px;flex:1;display:flex;flex-direction:column;gap:10px;overflow-y:auto;';
 
-  // ── 붙일 곳 카드 ─────────────────────────────────────────────────
+  // ── 붙일 곳 카드 — +casual mark / +link mark 알약 ─────────────────
   var attachCard = document.createElement('div');
-  attachCard.style.cssText = 'border:1.5px dashed var(--border);border-radius:14px;padding:12px 14px;display:flex;flex-wrap:wrap;gap:7px;align-items:center;';
+  attachCard.style.cssText = 'border:1.5px dashed var(--border);border-radius:14px;padding:10px 14px;display:flex;flex-wrap:wrap;gap:7px;align-items:center;';
   var attachLabel = document.createElement('span');
-  attachLabel.style.cssText = 'font:500 11px \'JetBrains Mono\',monospace;color:var(--text-dim);margin-right:2px;';
+  attachLabel.style.cssText = 'font:500 11px \'JetBrains Mono\',monospace;color:var(--text-dim);margin-right:2px;flex-shrink:0;';
   attachLabel.textContent = '붙일 곳';
   attachCard.appendChild(attachLabel);
-  // 현재 글 타입 칩
-  var typeChip = document.createElement('span');
-  typeChip.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:100px;border:1px solid var(--border);background:var(--bg-surface);font:500 11px \'JetBrains Mono\',monospace;color:var(--text-muted);cursor:pointer;';
-  typeChip.textContent = (_writeType === 'link' ? '🔗 link mark' : '✦ casual mark');
-  attachCard.appendChild(typeChip);
+
+  function makePill(label, type) {
+    var pill = document.createElement('span');
+    var active = _writeType === type;
+    pill.style.cssText = 'display:inline-flex;align-items:center;gap:3px;padding:5px 12px;border-radius:100px;border:1.5px solid '+(active?'var(--accent)':'var(--border)')+';background:'+(active?'rgba(0,117,74,.08)':'transparent')+';font:600 11px \'JetBrains Mono\',monospace;color:'+(active?'var(--accent)':'var(--text-dim)')+';cursor:pointer;transition:all .15s;';
+    pill.innerHTML = (active ? '' : '<span style="font-size:13px;line-height:1;">+</span> ') + label;
+    pill.onclick = function() {
+      _writeType = type;
+      var ta = document.getElementById('write-ta');
+      if (ta) ta.placeholder = type === 'link' ? '공유를 마크하세요.' : '일상을 마크하세요.';
+      attachCard.querySelectorAll('.type-pill').forEach(function(p) {
+        var t = p.dataset.type;
+        var a = _writeType === t;
+        p.style.borderColor = a ? 'var(--accent)' : 'var(--border)';
+        p.style.background = a ? 'rgba(0,117,74,.08)' : 'transparent';
+        p.style.color = a ? 'var(--accent)' : 'var(--text-dim)';
+        p.innerHTML = (a ? '' : '<span style="font-size:13px;line-height:1;">+</span> ') + p.dataset.label;
+      });
+    };
+    pill.className = 'type-pill';
+    pill.dataset.type = type;
+    pill.dataset.label = label;
+    return pill;
+  }
+  attachCard.appendChild(makePill('casual mark', 'casual'));
+  attachCard.appendChild(makePill('link mark', 'link'));
   body.appendChild(attachCard);
 
   // ── nickBar ───────────────────────────────────────────────────────
@@ -1742,14 +1765,14 @@ function writePage(me) {
   renderWriteNick(false);
   body.appendChild(nickBar);
 
-  // textarea + 카운트/고양이를 하나의 relative 래퍼로 묶기 (카드 스타일)
+  // textarea 카드 — 고정 높이, 카운트 우하단
   var taWrap = document.createElement('div');
-  taWrap.style.cssText = 'position:relative;flex:1;display:flex;flex-direction:column;border:1.5px solid var(--border);border-radius:14px;padding:14px;background:var(--paper);min-height:180px;';
+  taWrap.style.cssText = 'position:relative;border:1.5px solid var(--border);border-radius:14px;padding:14px 14px 32px;background:var(--paper);';
 
   var ta = document.createElement('textarea');
   ta.id = 'write-ta';
   ta.placeholder = _writeType === 'link' ? '공유를 마크하세요.' : '일상을 마크하세요.';
-  ta.style.cssText = 'flex:1;font-size:14px;line-height:1.7;resize:none;min-height:140px;background:transparent;border:none;outline:none;width:100%;';
+  ta.style.cssText = 'font-size:14px;line-height:1.7;resize:none;height:196px;background:transparent;border:none;outline:none;width:100%;overflow-y:auto;';
   if (_writeDraft) ta.value = _writeDraft;
   ta.oninput = function() {
     _writeDraft = this.value;
@@ -1758,27 +1781,15 @@ function writePage(me) {
     if (bar) { bar.style.width = pct+'%'; bar.style.background = len>MAX?'#ef4444':pct>90?'#eab308':'var(--accent)'; }
     if (cnt) { cnt.textContent = rem; cnt.style.color = len>MAX?'#f87171':rem<20?'#eab308':'var(--text-muted)'; }
     if (btn) { var ok = len>0&&len<=MAX; btn.disabled=!ok; btn.style.opacity=ok?'1':'.3'; }
-    _syncCountPos();
   };
   taWrap.appendChild(ta);
 
-  // 글자 수: 텍스트 흐름 따라 위치 이동
+  // 글자 수 카운트 — 우하단 고정
   var cntEl = document.createElement('span');
   cntEl.id = 'w-cnt';
-  cntEl.style.cssText = 'position:absolute;top:22px;left:0;font-size:11px;color:var(--text-muted);pointer-events:none;z-index:3;transition:top .08s ease;';
+  cntEl.style.cssText = 'position:absolute;bottom:10px;right:14px;font:500 11px \'JetBrains Mono\',monospace;color:var(--text-muted);pointer-events:none;';
   cntEl.textContent = MAX;
   taWrap.appendChild(cntEl);
-
-  // textarea 내용 높이를 측정하기 위한 mirror div
-  var taMirror = document.createElement('div');
-  taMirror.style.cssText = 'position:absolute;visibility:hidden;pointer-events:none;top:0;left:0;right:0;font-size:14px;line-height:1.7;font-family:inherit;white-space:pre-wrap;word-break:break-word;';
-  taWrap.appendChild(taMirror);
-
-  function _syncCountPos() {
-    taMirror.textContent = ta.value + '​';
-    cntEl.style.top = taMirror.scrollHeight + 'px';
-  }
-  requestAnimationFrame(_syncCountPos);
 
   // 고양이 canvas: taWrap 수직 중앙
   var wcCv = document.createElement('canvas');
@@ -1787,12 +1798,49 @@ function writePage(me) {
 
   body.appendChild(taWrap);
 
-  // ── 공개 범위 행 (디자인) ──────────────────────────────────────────
-  var visRow = document.createElement('div');
-  visRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border:1.5px solid var(--border);border-radius:14px;background:var(--paper);';
-  visRow.innerHTML = '<span style="font:500 13px \'Inter\',\'Noto Sans KR\',sans-serif;color:var(--text-muted);">공개 범위</span>'
-    + '<span style="font:600 13px \'Inter\',\'Noto Sans KR\',sans-serif;color:var(--text);display:flex;align-items:center;gap:4px;">전체 공개 <span style="font-size:10px;color:var(--text-dim);">▼</span></span>';
-  body.appendChild(visRow);
+  // ── 해시태그 입력 행 ──────────────────────────────────────────────
+  var _writeTags = [];
+  var tagRow = document.createElement('div');
+  tagRow.style.cssText = 'border:1.5px solid var(--border);border-radius:14px;padding:10px 14px;background:var(--paper);display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:46px;cursor:text;';
+
+  function renderTagRow() {
+    tagRow.innerHTML = '';
+    var tagLabel = document.createElement('span');
+    tagLabel.style.cssText = 'font:700 13px \'JetBrains Mono\',monospace;color:var(--text-dim);flex-shrink:0;';
+    tagLabel.textContent = '#';
+    tagRow.appendChild(tagLabel);
+    _writeTags.forEach(function(t) {
+      var chip = document.createElement('span');
+      chip.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:100px;background:rgba(0,117,74,.10);border:1px solid rgba(0,117,74,.28);font:600 11px \'JetBrains Mono\',monospace;color:var(--accent);';
+      chip.innerHTML = '#'+esc(t)+' <span style="cursor:pointer;opacity:.6;font-size:12px;" data-rm="'+esc(t)+'">×</span>';
+      chip.querySelector('[data-rm]').onclick = function(e) {
+        e.stopPropagation();
+        _writeTags = _writeTags.filter(function(x){ return x !== t; });
+        renderTagRow();
+      };
+      tagRow.appendChild(chip);
+    });
+    var tagInp = document.createElement('input');
+    tagInp.placeholder = _writeTags.length ? '' : '태그 추가…';
+    tagInp.style.cssText = 'border:none;outline:none;background:transparent;font:500 12px \'JetBrains Mono\',monospace;color:var(--text);flex:1;min-width:80px;';
+    tagInp.onkeydown = function(e) {
+      var raw = this.value.replace(/^#+/, '').trim();
+      if ((e.key === 'Enter' || e.key === ',' || e.key === ' ') && raw) {
+        e.preventDefault();
+        var tag = raw.toLowerCase().replace(/[^가-힣a-z0-9_]/g, '');
+        if (tag && !_writeTags.includes(tag)) _writeTags.push(tag);
+        renderTagRow();
+      }
+      if (e.key === 'Backspace' && !this.value && _writeTags.length) {
+        _writeTags.pop();
+        renderTagRow();
+      }
+    };
+    tagRow.appendChild(tagInp);
+    tagRow.onclick = function() { tagInp.focus(); };
+  }
+  renderTagRow();
+  body.appendChild(tagRow);
 
   // ── 익명 토글 행 (디자인) ─────────────────────────────────────────
   var anonRow = document.createElement('div');
