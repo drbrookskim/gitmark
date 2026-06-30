@@ -222,7 +222,15 @@
       transition: box-shadow .15s;
     }
     .gcard:hover { box-shadow: 0 0 1px rgba(0,0,0,.14), 0 2px 4px rgba(0,0,0,.24); }
-    .gcard.lnk { border-top: 3px solid var(--text); }
+    .gcard.lnk {
+      border-top: 3px solid var(--text);
+      box-shadow: 5px 8px 0 0 #1E3932,
+                  0 0 0.5px rgba(0,0,0,.14), 0 1px 1px rgba(0,0,0,.24);
+    }
+    .gcard.lnk:hover {
+      box-shadow: 5px 8px 0 0 #1E3932,
+                  0 0 1px rgba(0,0,0,.14), 0 2px 4px rgba(0,0,0,.24);
+    }
     .gcard .gnode {
       position: absolute; left: -22px; top: 22px;
       width: 9px; height: 9px; border-radius: 50%;
