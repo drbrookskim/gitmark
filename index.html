@@ -239,10 +239,12 @@
     .gc-cas { font: 400 16px/1.6 'Inter','Noto Sans KR',sans-serif; color: var(--text); margin: 0; white-space: pre-line; word-break: break-word; }
     .gc-txt { font: 400 13.5px/1.6 'Inter','Noto Sans KR',sans-serif; color: var(--text); margin: 0; word-break: break-word; }
     .gc-link-url { display: block; font: 500 12px 'JetBrains Mono',monospace; color: var(--text-muted); text-decoration: underline; margin: 8px 0 0; word-break: break-all; }
-    .gc-foot { display: flex; align-items: center; gap: 12px; padding: 8px 14px; border-top: 1px solid var(--border); font-size: 11.5px; color: var(--text-muted); }
-    .gc-foot .gc-stat { display: flex; align-items: center; gap: 11px; margin-left: auto; }
-    .gc-foot .gc-stat span { display: inline-flex; align-items: center; gap: 4px; }
-    .gc-like-btn { cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-family: 'Inter','Noto Sans KR',sans-serif; padding: 2px 9px; border-radius: 100px; border: 1px solid transparent; background: transparent; color: var(--text-muted); transition: all .15s; }
+    .gc-foot { display: flex; align-items: center; padding: 7px 10px; border-top: 1px solid var(--border); gap: 4px; }
+    .gc-foot-spacer { flex: 1; }
+    .gc-icon-btn { cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-family: 'Inter','Noto Sans KR',sans-serif; padding: 4px 9px; border-radius: 100px; border: 1px solid transparent; background: transparent; color: var(--text-muted); transition: all .15s; }
+    .gc-icon-btn:hover { background: var(--bg-surface); }
+    .gc-like-btn { cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-family: 'Inter','Noto Sans KR',sans-serif; padding: 4px 9px; border-radius: 100px; border: 1px solid transparent; background: transparent; color: var(--text-muted); transition: all .15s; }
+    .gc-like-btn:hover { background: var(--bg-surface); }
     .gc-like-btn.liked { color: var(--accent); background: rgba(0,117,74,.10); border-color: rgba(0,117,74,.28); }
     /* URL tab above link card */
     .gurl-tab { font: 500 10.5px 'JetBrains Mono',monospace; color: var(--text-muted); background: var(--bg-surface); border: 1px solid var(--border); border-bottom: none; border-radius: 9px 9px 0 0; padding: 4px 12px; margin-left: 16px; display: inline-block; max-width: 78%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
@@ -1503,11 +1505,14 @@ function makeCard(post, me, idx, likedSet, avatarMap) {
     bodyHtml,
     '</div>',
     '<div class="gc-foot">',
-    '<div class="gc-stat">',
+    // 좌하: 댓글
+    '<button class="gc-icon-btn" id="cmtbtn-'+post.id+'">💬 <span id="cmtcnt-'+post.id+'">'+cmtCount+'</span></button>',
+    '<div class="gc-foot-spacer"></div>',
+    // 우하: 공유, 좋아요, 삭제
+    '<button class="gc-icon-btn" id="shbtn-'+post.id+'" title="공유">↗</button>',
     likeHtml,
-    '<span><span style="font-size:12px;">💬</span> <span id="cmtcnt-'+post.id+'">'+cmtCount+'</span></span>',
     me.uid===post.uid ? '<button class="del-btn" id="delbtn-'+post.id+'">삭제</button>' : '',
-    '</div></div>'
+    '</div>'
   ].join('');
 
   // URL tab above link cards
@@ -1573,6 +1578,25 @@ function makeCard(post, me, idx, likedSet, avatarMap) {
       }, '삭제');
     };
   }
+  // 댓글 버튼 → 포스트 상세로 이동
+  tile.querySelector('#cmtbtn-'+post.id).onclick = function(e) {
+    e.stopPropagation();
+    inkTransition(e.clientX, e.clientY, function() { R.go('/post/'+post.id); });
+  };
+  // 공유 버튼
+  tile.querySelector('#shbtn-'+post.id).onclick = function(e) {
+    e.stopPropagation();
+    var shareUrl = location.origin + location.pathname + '#/post/' + post.id;
+    if (navigator.share) {
+      navigator.share({ title: 'gitmark', text: post.txt.slice(0, 60), url: shareUrl });
+    } else {
+      navigator.clipboard.writeText(shareUrl).then(function() {
+        var btn = tile.querySelector('#shbtn-'+post.id);
+        btn.textContent = '✓';
+        setTimeout(function() { btn.textContent = '↗'; }, 1500);
+      });
+    }
+  };
   tile.onclick = function(e) {
     inkTransition(e.clientX, e.clientY, function() { R.go('/post/'+post.id); });
   };
@@ -1660,10 +1684,25 @@ function writePage(me) {
   wrap.appendChild(writeTabBar);
 
   var body = document.createElement('div');
-  body.style.cssText = 'padding:14px 16px;flex:1;display:flex;flex-direction:column;';
+  body.style.cssText = 'padding:12px 16px;flex:1;display:flex;flex-direction:column;gap:10px;overflow-y:auto;';
 
+  // ── 붙일 곳 카드 ─────────────────────────────────────────────────
+  var attachCard = document.createElement('div');
+  attachCard.style.cssText = 'border:1.5px dashed var(--border);border-radius:14px;padding:12px 14px;display:flex;flex-wrap:wrap;gap:7px;align-items:center;';
+  var attachLabel = document.createElement('span');
+  attachLabel.style.cssText = 'font:500 11px \'JetBrains Mono\',monospace;color:var(--text-dim);margin-right:2px;';
+  attachLabel.textContent = '붙일 곳';
+  attachCard.appendChild(attachLabel);
+  // 현재 글 타입 칩
+  var typeChip = document.createElement('span');
+  typeChip.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:100px;border:1px solid var(--border);background:var(--bg-surface);font:500 11px \'JetBrains Mono\',monospace;color:var(--text-muted);cursor:pointer;';
+  typeChip.textContent = (_writeType === 'link' ? '🔗 link mark' : '✦ casual mark');
+  attachCard.appendChild(typeChip);
+  body.appendChild(attachCard);
+
+  // ── nickBar ───────────────────────────────────────────────────────
   var nickBar = document.createElement('div');
-  nickBar.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:12px;';
+  nickBar.style.cssText = 'display:flex;align-items:center;gap:6px;';
 
   function writeAvatar() {
     return me.avatar_url
@@ -1703,17 +1742,14 @@ function writePage(me) {
   renderWriteNick(false);
   body.appendChild(nickBar);
 
-  // textarea + 남기기/카운트/고양이를 하나의 relative 래퍼로 묶기
+  // textarea + 카운트/고양이를 하나의 relative 래퍼로 묶기 (카드 스타일)
   var taWrap = document.createElement('div');
-  taWrap.style.cssText = 'position:relative;flex:1;display:flex;flex-direction:column;';
+  taWrap.style.cssText = 'position:relative;flex:1;display:flex;flex-direction:column;border:1.5px solid var(--border);border-radius:14px;padding:14px;background:var(--paper);min-height:180px;';
 
   var ta = document.createElement('textarea');
   ta.id = 'write-ta';
-  ta.placeholder = window.innerWidth >= 768
-    ? '일상이나 공유를 마크하세요.'
-    : (_writeType === 'link' ? '공유를 마크하세요.' : '일상을 마크하세요.');
-  // 오른쪽에 남기기 버튼 공간 확보
-  ta.style.cssText = 'flex:1;font-size:13px;resize:none;min-height:120px;padding-right:80px;background:transparent;border:none;outline:none;width:100%;';
+  ta.placeholder = _writeType === 'link' ? '공유를 마크하세요.' : '일상을 마크하세요.';
+  ta.style.cssText = 'flex:1;font-size:14px;line-height:1.7;resize:none;min-height:140px;background:transparent;border:none;outline:none;width:100%;';
   if (_writeDraft) ta.value = _writeDraft;
   ta.oninput = function() {
     _writeDraft = this.value;
@@ -1735,7 +1771,7 @@ function writePage(me) {
 
   // textarea 내용 높이를 측정하기 위한 mirror div
   var taMirror = document.createElement('div');
-  taMirror.style.cssText = 'position:absolute;visibility:hidden;pointer-events:none;top:0;left:0;right:0;font-size:13px;line-height:1.7;font-family:inherit;white-space:pre-wrap;word-break:break-word;padding-right:80px;';
+  taMirror.style.cssText = 'position:absolute;visibility:hidden;pointer-events:none;top:0;left:0;right:0;font-size:14px;line-height:1.7;font-family:inherit;white-space:pre-wrap;word-break:break-word;';
   taWrap.appendChild(taMirror);
 
   function _syncCountPos() {
@@ -1751,13 +1787,34 @@ function writePage(me) {
 
   body.appendChild(taWrap);
 
+  // ── 공개 범위 행 (디자인) ──────────────────────────────────────────
+  var visRow = document.createElement('div');
+  visRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border:1.5px solid var(--border);border-radius:14px;background:var(--paper);';
+  visRow.innerHTML = '<span style="font:500 13px \'Inter\',\'Noto Sans KR\',sans-serif;color:var(--text-muted);">공개 범위</span>'
+    + '<span style="font:600 13px \'Inter\',\'Noto Sans KR\',sans-serif;color:var(--text);display:flex;align-items:center;gap:4px;">전체 공개 <span style="font-size:10px;color:var(--text-dim);">▼</span></span>';
+  body.appendChild(visRow);
+
+  // ── 익명 토글 행 (디자인) ─────────────────────────────────────────
+  var anonRow = document.createElement('div');
+  anonRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border:1.5px solid var(--border);border-radius:14px;background:var(--paper);';
+  var anonOn = false;
+  anonRow.innerHTML = '<span style="font:500 13px \'Inter\',\'Noto Sans KR\',sans-serif;color:var(--text-muted);">익명</span>'
+    + '<div id="anon-toggle" style="width:42px;height:24px;border-radius:100px;background:var(--border);position:relative;cursor:pointer;transition:background .2s;">'
+    + '<div style="position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s;"></div></div>';
+  anonRow.querySelector('#anon-toggle').onclick = function() {
+    anonOn = !anonOn;
+    this.style.background = anonOn ? 'var(--accent)' : 'var(--border)';
+    this.querySelector('div').style.left = anonOn ? '21px' : '3px';
+  };
+  body.appendChild(anonRow);
+
   wrap.appendChild(body);
 
   var footer = document.createElement('div');
   footer.style.cssText = 'position:sticky;bottom:0;background:var(--paper);border-top:1px solid var(--border);';
 
   var toolRow = document.createElement('div');
-  toolRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 16px 4px;';
+  toolRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 16px 10px;';
   var tools = document.createElement('div');
   tools.style.cssText = 'display:flex;gap:9px;align-items:center;';
 
