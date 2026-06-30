@@ -501,12 +501,21 @@ function extractUrl(txt) {
   return m ? m[0] : null;
 }
 
+function extractTags(txt) {
+  var m = (txt || '').match(/#([가-힣a-zA-Z0-9_]+)/g) || [];
+  return m.map(function(t) { return t.slice(1).toLowerCase(); });
+}
+
 function linkify(txt) {
-  return (txt || '').split(/(https?:\/\/[^\s]+)/g).map(function(part) {
+  return (txt || '').split(/(https?:\/\/[^\s]+|#[가-힣a-zA-Z0-9_]+)/g).map(function(part) {
     if (/^https?:\/\//.test(part)) {
       var disp = part.replace(/^https?:\/\//, '').replace(/\/$/, '');
       if (disp.length > 42) disp = disp.slice(0, 42) + '…';
       return '<a href="'+esc(part)+'" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="color:var(--text-dim);text-decoration:underline;text-underline-offset:2px;word-break:break-all;">'+esc(disp)+'</a>';
+    }
+    if (/^#[가-힣a-zA-Z0-9_]+/.test(part)) {
+      var tag = esc(part.slice(1).toLowerCase());
+      return '<span onclick="event.stopPropagation();_setTagFilter(\''+tag+'\')" style="color:var(--accent);font-weight:600;cursor:pointer;">'+esc(part)+'</span>';
     }
     return esc(part);
   }).join('');
@@ -704,6 +713,12 @@ var _feedTab = 'casual';
 var _cachedMe = null;
 var _writeDraft = '';
 var _writeType = 'casual'; // casual | link
+var _activeTag = null;
+
+function _setTagFilter(tag) {
+  _activeTag = (_activeTag === tag) ? null : tag;
+  R.render();
+}
 
 // 모바일 스크롤 시 하단 바 자동 hide/show
 (function() {
@@ -1161,6 +1176,21 @@ async function feedPage(me) {
     requestAnimationFrame(function() {
       wrap.style.paddingTop = feedHdrWrap.offsetHeight + 'px';
     });
+    // 태그 필터 칩
+    if (_activeTag) {
+      var tagChip = document.createElement('div');
+      tagChip.style.cssText = 'display:flex;align-items:center;gap:6px;padding:6px 16px;background:var(--bg);border-bottom:1px solid var(--border-sub);';
+      tagChip.innerHTML = '<span style="font:600 12px \'JetBrains Mono\',monospace;color:var(--accent);">#'+esc(_activeTag)+'</span>'
+        + '<span style="font-size:11px;color:var(--text-dim);">로 필터 중</span>'
+        + '<button onclick="_setTagFilter(\''+esc(_activeTag)+'\')" style="margin-left:auto;font-size:11px;background:none;border:none;color:var(--text-muted);cursor:pointer;padding:2px 6px;border-radius:4px;">✕ 해제</button>';
+      feedHdrWrap.appendChild(tagChip);
+      requestAnimationFrame(function() { wrap.style.paddingTop = feedHdrWrap.offsetHeight + 'px'; });
+    }
+
+    var filteredPosts = _activeTag
+      ? posts.filter(function(p) { return (p.tags || []).indexOf(_activeTag) !== -1; })
+      : posts;
+
     var indexWrap = document.createElement('div');
     indexWrap.className = 'feed-branch-wrap';
     indexWrap.style.backgroundImage = 'radial-gradient(circle,rgba(0,98,65,.10) 1.1px,transparent 1.1px)';
@@ -1172,7 +1202,13 @@ async function feedPage(me) {
     catCanvas.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:1;cursor:pointer;';
     indexWrap.appendChild(catCanvas);
 
-    posts.forEach(function(post) {
+    if (filteredPosts.length === 0) {
+      var noTag = document.createElement('div');
+      noTag.style.cssText = 'text-align:center;padding:60px 20px;color:var(--text-dim);font-size:13px;';
+      noTag.textContent = '#' + _activeTag + ' 태그가 달린 흔적이 없어요.';
+      indexWrap.appendChild(noTag);
+    }
+    filteredPosts.forEach(function(post) {
       var card = makeCard(post, me, null, likedSet, avatarMap);
       if (card.classList.contains('info')) card.classList.add('tab-hidden');
       indexWrap.appendChild(card);
@@ -1580,7 +1616,7 @@ function writePage(me) {
     submitBtn.disabled = true;
     submitBtn.style.opacity = '.3';
     var now = Date.now();
-    await SB.from('posts').insert({ id: mkId(), uid: me.uid, nick: me.nick, pseudo: me.pseudo, txt: txt, at: now, upd: now, likes_count: 0, comments_count: 0 });
+    await SB.from('posts').insert({ id: mkId(), uid: me.uid, nick: me.nick, pseudo: me.pseudo, txt: txt, tags: extractTags(txt), at: now, upd: now, likes_count: 0, comments_count: 0 });
     _writeDraft = '';
     R.go('/');
   };
