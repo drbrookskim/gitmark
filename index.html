@@ -799,7 +799,7 @@ function tabBar(active, me) {
 function authPage() {
   var wrap = document.createElement('div');
   wrap.className = 'screen';
-  wrap.innerHTML = '<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;"><svg viewBox="0 0 48 48" width="60" height="60" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="13"/><circle cx="24" cy="24" r="5" fill="var(--accent)" stroke="none"/><line x1="24" y1="1" x2="24" y2="9"/><line x1="24" y1="39" x2="24" y2="47"/><line x1="1" y1="24" x2="9" y2="24"/><line x1="39" y1="24" x2="47" y2="24"/></svg><span style="display:block;font:700 24px \'Inter\',\'Noto Sans KR\',sans-serif;color:var(--accent);margin-top:14px;">gitmark</span></div>';
+  wrap.innerHTML = '<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;"><svg viewBox="0 0 48 48" width="60" height="60" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="13"/><circle cx="24" cy="24" r="5" fill="var(--accent)" stroke="none"/><line x1="24" y1="1" x2="24" y2="9"/><line x1="24" y1="39" x2="24" y2="47"/><line x1="1" y1="24" x2="9" y2="24"/><line x1="39" y1="24" x2="47" y2="24"/></svg><span style="display:block;font:700 24px \'JetBrains Mono\',monospace;color:var(--accent);margin-top:14px;">gitmark</span></div>';
   return wrap;
 }
 
@@ -947,7 +947,7 @@ async function feedPage(me) {
   hdr.className = 'sticky-header feed-fixed-hdr';
   var logoBtn = document.createElement('button');
   logoBtn.style.cssText = 'display:flex;align-items:center;gap:8px;background:none;border:none;cursor:pointer;padding:0;color:var(--text);';
-  logoBtn.innerHTML = _SVG_LOGO + '<span style="font:700 18px \'Inter\',\'Noto Sans KR\',sans-serif;color:var(--text);letter-spacing:-.01em;">gitmark</span>';
+  logoBtn.innerHTML = _SVG_LOGO + '<span style="font:700 18px \'JetBrains Mono\',monospace;color:var(--text);">gitmark</span>';
   logoBtn.onclick = function() { R.go('/'); };
   hdr.appendChild(logoBtn);
   // +mark 와 검색 버튼을 함께 묶어 오른쪽 정렬
