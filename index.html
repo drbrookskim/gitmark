@@ -371,6 +371,15 @@
       justify-content: flex-end;
       padding-right: 14px; padding-left: calc(50% + 10px);
     }
+    /* 모바일: dot↔카드 연결 가로선 */
+    .branch-row.casual .gcard::after {
+      content: ''; position: absolute; top: 26px; left: -13px;
+      width: 13px; border-top: 1px solid var(--rail);
+    }
+    .branch-row.info .gcard::after {
+      content: ''; position: absolute; top: 26px; right: -13px;
+      width: 13px; border-top: 1px solid var(--rail);
+    }
     /* 데스크탑: casual 닷 우측(중앙 방향), info 닷 좌측(중앙 방향) */
     @media (min-width: 768px) {
       .branch-row.casual .gcard .gnode { left: auto; right: -30px; top: 22px; }
