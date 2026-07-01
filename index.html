@@ -55,13 +55,6 @@
       font-family: 'Inter', 'Noto Sans KR', -apple-system, sans-serif;
       font-weight: 400;
     }
-    /* 도트 배경 패턴 */
-    body::before {
-      content: '';
-      position: fixed; inset: 0; z-index: 0; pointer-events: none;
-      background-image: radial-gradient(circle, rgba(0,98,65,.10) 1.1px, transparent 1.1px);
-      background-size: 19px 19px;
-    }
     #app {
       max-width: 680px;
       margin: 0 auto;
@@ -348,16 +341,20 @@
 
     /* ── 분기 타임라인 피드 ──────────────────────────────────── */
     .feed-branch-header {
-      display: grid; grid-template-columns: 1fr 1px 1fr;
+      display: flex; position: relative;
       background: var(--paper);
-      border-bottom: 1px solid rgba(0,98,65,.28);
+      border-bottom: 1px solid #006241;
       font-size: 13px; font-weight: 700; color: var(--text-muted);
       font-family: 'JetBrains Mono', monospace;
     }
+    .feed-branch-header::before {
+      content: ''; position: absolute; left: 50%; top: 0; bottom: 0;
+      border-left: 1px solid #006241; pointer-events: none;
+    }
     .s-hl { background: var(--text); color: var(--bg); border-radius: 2px; padding: 0 1px; }
-    .fbh-left  { padding: 13px 16px; text-align: right; }
-    .fbh-sep   { background: #006241; }
-    .fbh-right { padding: 13px 16px; }
+    .fbh-left  { flex: 1; padding: 13px 16px; text-align: right; }
+    .fbh-sep   { display: none; }
+    .fbh-right { flex: 1; padding: 13px 16px; }
     .feed-branch-wrap {
       position: relative; padding: 16px 0 16px;
       margin: 8px 0 90px;
@@ -1214,8 +1211,6 @@ async function feedPage(me) {
 
     var indexWrap = document.createElement('div');
     indexWrap.className = 'feed-branch-wrap';
-    indexWrap.style.backgroundImage = 'radial-gradient(circle,rgba(0,98,65,.10) 1.1px,transparent 1.1px)';
-    indexWrap.style.backgroundSize = '19px 19px';
 
     // 고양이 픽셀아트 canvas (데스크탑 전용)
     var catCanvas = document.createElement('canvas');
@@ -2071,7 +2066,7 @@ async function detailPage(pid, me) {
       authorAvatar(42),
       '<div><div style="font-size:13px;color:var(--text);">'+nickHtml(post.nick,post.pseudo)+'</div>',
       '<div style="font-size:11px;color:var(--text-muted);margin-top:3px;">'+relTime(post.upd||post.at)+'</div></div></div>',
-      '<div id="d-post-body" style="font-size:14px;color:var(--text-body);line-height:1.7;word-break:break-word;margin-bottom:14px;min-height:1.7em;"></div>',
+      '<div id="d-post-body" style="font-size:12px;color:var(--text-body);line-height:1.7;word-break:break-word;margin-bottom:14px;min-height:1.7em;"></div>',
       '<div style="display:flex;align-items:center;gap:14px;">',
       '<button class="like-btn'+(liked?' liked':'')+'" id="d-lbtn"><span id="d-lico">'+(liked?'♥':'♡')+'</span><span style="font-size:12px;" id="d-lcnt">'+(post.likes_count||0)+'</span></button>',
       '<span style="font-size:12px;color:var(--text-muted);">💬 <span id="d-cmt-cnt">'+(post.comments_count||0)+'</span></span>',
@@ -2289,11 +2284,19 @@ async function profilePage(me) {
 
   var hdr = document.createElement('div');
   hdr.className = 'sticky-header';
-  hdr.innerHTML = '<span style="font-size:13px;letter-spacing:.05em;">my page</span>';
+  var backBtn = document.createElement('button');
+  backBtn.textContent = '←';
+  backBtn.style.cssText = 'font-size:22px;color:var(--text-muted);background:none;border:none;cursor:pointer;padding:0;line-height:1;';
+  backBtn.onclick = function() { R.go('/'); };
+  var hdrTitle = document.createElement('span');
+  hdrTitle.style.cssText = 'font:700 15px \'Inter\',\'Noto Sans KR\',sans-serif;color:var(--text);';
+  hdrTitle.textContent = 'my page';
   var logoutBtn = document.createElement('button');
   logoutBtn.className = 'btn-ghost';
   logoutBtn.textContent = '로그아웃';
   logoutBtn.onclick = async function() { await SB.auth.signOut(); R.render(); };
+  hdr.appendChild(backBtn);
+  hdr.appendChild(hdrTitle);
   hdr.appendChild(logoutBtn);
   wrap.appendChild(hdr);
 
@@ -2425,7 +2428,18 @@ async function myPage(me) {
 
   var hdr = document.createElement('div');
   hdr.className = 'sticky-header';
-  hdr.innerHTML = '<span style="font-size:13px;letter-spacing:.05em;">내 흔적</span>';
+  var backBtn = document.createElement('button');
+  backBtn.textContent = '←';
+  backBtn.style.cssText = 'font-size:22px;color:var(--text-muted);background:none;border:none;cursor:pointer;padding:0;line-height:1;';
+  backBtn.onclick = function() { R.go('/'); };
+  var hdrTitle = document.createElement('span');
+  hdrTitle.style.cssText = 'font:700 15px \'Inter\',\'Noto Sans KR\',sans-serif;color:var(--text);';
+  hdrTitle.textContent = '내 흔적';
+  var hdrSpacer = document.createElement('span');
+  hdrSpacer.style.cssText = 'width:22px;display:inline-block;';
+  hdr.appendChild(backBtn);
+  hdr.appendChild(hdrTitle);
+  hdr.appendChild(hdrSpacer);
   wrap.appendChild(hdr);
 
   var now60m = Date.now() - 60000;
