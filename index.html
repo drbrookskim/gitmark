@@ -234,7 +234,7 @@
     .gc-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
     .gc-av { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font: 700 11px 'JetBrains Mono',monospace; color: #fff; flex-shrink: 0; }
     .gc-meta { display: flex; flex-direction: column; gap: 1px; }
-    .gc-who { font: 700 12.5px 'Inter','Noto Sans KR',sans-serif; color: var(--text); }
+    .gc-who { font: 700 12.5px 'JetBrains Mono',monospace; color: var(--text); }
     .gc-ago { font: 400 10.5px 'JetBrains Mono',monospace; color: var(--text-muted); }
     .gc-cas { font: 400 16px/1.6 'Inter','Noto Sans KR',sans-serif; color: var(--text); margin: 0; white-space: pre-line; word-break: break-word; }
     .gc-txt { font: 400 13.5px/1.6 'Inter','Noto Sans KR',sans-serif; color: var(--text); margin: 0; word-break: break-word; }
@@ -257,23 +257,30 @@
     /* ── 인덱스 피드 레이아웃 ───────────────────────────────────── */
     .feed-index-wrap {
       padding: 20px 20px 0 20px;
+      position: relative;
+    }
+    .feed-index-wrap::before {
+      content: ''; position: absolute; left: 48px; top: 26px; bottom: 26px;
+      border-left: 1px solid var(--rail); z-index: 0;
     }
     .card-row {
       display: flex; align-items: flex-start;
-      gap: 12px; margin-bottom: 10px;
+      gap: 24px; margin-bottom: 10px;
+      position: relative; z-index: 1;
     }
     .card-idx {
       font-size: 11px; color: var(--text-dim);
-      font-family: 'Inter', 'Noto Sans KR', sans-serif;
-      min-width: 28px; text-align: right;
-      padding-top: 13px; flex-shrink: 0;
+      font-family: 'JetBrains Mono', monospace;
+      min-width: 16px; text-align: right;
+      padding-top: 22px; flex-shrink: 0;
       user-select: none;
     }
     .card-tile-wrap { flex: 1; min-width: 0; }
+    .card-row .gcard .gnode { left: -16px; }
     /* 내 글 피드: dot↔카드 연결 가로선 */
     .card-row .gcard::after {
-      content: ''; position: absolute; top: 26px; left: -22px;
-      width: 22px; border-top: 1px solid var(--rail);
+      content: ''; position: absolute; top: 26px; left: -16px;
+      width: 12px; border-top: 1px solid var(--rail);
     }
 
     .tile {
@@ -345,7 +352,7 @@
       background: var(--paper);
       border-bottom: 1px solid rgba(0,98,65,.28);
       font-size: 13px; font-weight: 700; color: var(--text-muted);
-      font-family: 'Inter', 'Noto Sans KR', sans-serif;
+      font-family: 'JetBrains Mono', monospace;
     }
     .s-hl { background: var(--text); color: var(--bg); border-radius: 2px; padding: 0 1px; }
     .fbh-left  { padding: 13px 16px; text-align: right; }
@@ -404,7 +411,7 @@
       flex: 1; padding: 14px 0;
       background: none; border: none; border-bottom: 2px solid transparent;
       cursor: pointer;
-      font-family: 'Inter', 'Noto Sans KR', sans-serif;
+      font-family: 'JetBrains Mono', monospace;
       font-size: 13px; font-weight: 600; color: var(--text-muted);
       transition: color .15s, border-color .15s;
     }
@@ -1674,10 +1681,10 @@ function writePage(me) {
   var writeTabBar = document.createElement('div');
   writeTabBar.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;background:var(--paper);border-bottom:1px solid var(--border);';
   var wTabCasual = document.createElement('button');
-  wTabCasual.style.cssText = 'text-align:center;padding:13px 0;font:600 13px \'Inter\',\'Noto Sans KR\',sans-serif;color:var(--text-muted);background:none;border:none;cursor:pointer;';
+  wTabCasual.style.cssText = 'text-align:center;padding:13px 0;font:600 13px \'JetBrains Mono\',monospace;color:var(--text-muted);background:none;border:none;cursor:pointer;';
   wTabCasual.textContent = 'casual mark';
   var wTabLink = document.createElement('button');
-  wTabLink.style.cssText = 'text-align:center;padding:13px 0;font:600 13px \'Inter\',\'Noto Sans KR\',sans-serif;color:var(--text-muted);background:none;border:none;cursor:pointer;';
+  wTabLink.style.cssText = 'text-align:center;padding:13px 0;font:600 13px \'JetBrains Mono\',monospace;color:var(--text-muted);background:none;border:none;cursor:pointer;';
   wTabLink.textContent = 'link mark';
   if (_writeType === 'link') {
     wTabLink.style.color = 'var(--accent)';
