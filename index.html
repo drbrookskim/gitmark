@@ -396,17 +396,17 @@
       content: ''; position: absolute; left: 50%; top: 0; bottom: 0;
       border-left: 1px solid #006241; pointer-events: none; z-index: 0;
     }
-    .feed-branch-wrap.tab-link-active::before { left: 5px; right: auto; border-right: none; border-left: 2px solid #006241; }
+    .feed-branch-wrap.tab-link-active::before { left: auto; right: 5px; border-left: none; border-right: 2px solid #006241; }
     .branch-row {
       display: flex; margin-bottom: 15px; position: relative; z-index: 1;
     }
     .branch-row.casual {
-      justify-content: flex-end;
-      padding-right: 10px; padding-left: calc(50% + 6px);
-    }
-    .branch-row.info {
       justify-content: flex-start;
       padding-left: 10px; padding-right: calc(50% + 6px);
+    }
+    .branch-row.info {
+      justify-content: flex-end;
+      padding-right: 10px; padding-left: calc(50% + 6px);
     }
     /* 모바일: dot↔카드 연결 가로선 */
     .branch-row.casual .gcard::after {
@@ -417,16 +417,16 @@
       content: ''; position: absolute; top: 26px; left: -13px;
       width: 13px; border-top: 1px solid var(--rail);
     }
-    /* 데스크탑: link 닷 좌측(중앙 방향), casual 닷 우측(중앙 방향) */
+    /* 데스크탑: casual 닷 우측(중앙 방향), info 닷 좌측(중앙 방향) */
     @media (min-width: 768px) {
-      .branch-row.casual .gcard .gnode { left: -30px; right: auto; top: 22px; }
-      .branch-row.info   .gcard .gnode { left: auto; right: -30px; top: 22px; }
+      .branch-row.casual .gcard .gnode { left: auto; right: -30px; top: 22px; }
+      .branch-row.info   .gcard .gnode { left: -30px; right: auto; top: 22px; }
       .branch-row.casual .gcard::after {
-        content: ''; position: absolute; top: 26px; right: auto; left: -26px;
+        content: ''; position: absolute; top: 26px; left: auto; right: -26px;
         width: 26px; border-top: 2px solid var(--rail);
       }
       .branch-row.info .gcard::after {
-        content: ''; position: absolute; top: 26px; left: auto; right: -26px;
+        content: ''; position: absolute; top: 26px; right: auto; left: -26px;
         width: 26px; border-top: 2px solid var(--rail);
       }
     }
@@ -1216,7 +1216,7 @@ async function feedPage(me) {
 
     var colHdr = document.createElement('div');
     colHdr.className = 'feed-branch-header';
-    colHdr.innerHTML = '<div class="fbh-left">link mark ←</div><div class="fbh-sep"></div><div class="fbh-right">→ casual mark</div>';
+    colHdr.innerHTML = '<div class="fbh-left">casual mark ←</div><div class="fbh-sep"></div><div class="fbh-right">→ link mark</div>';
     feedHdrWrap.appendChild(colHdr);
 
     // 래퍼 높이만큼 콘텐츠 padding-top 동적 적용
