@@ -55,6 +55,12 @@
       font-family: 'Inter', 'Noto Sans KR', -apple-system, sans-serif;
       font-weight: 400;
     }
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image: radial-gradient(circle, rgba(0,98,65,.10) 1.1px, transparent 1.1px);
+      background-size: 19px 19px;
+    }
     #app {
       max-width: 680px;
       margin: 0 auto;
@@ -360,8 +366,6 @@
       margin: 8px 0 90px;
       border: 1px solid var(--border);
       border-radius: 18px;
-      background-image: radial-gradient(circle, rgba(0,98,65,.10) 1.1px, transparent 1.1px);
-      background-size: 19px 19px;
       overflow: hidden;
     }
     .feed-branch-wrap::before {
