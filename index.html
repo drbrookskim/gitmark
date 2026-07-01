@@ -230,7 +230,7 @@
     .gc-who { font: 700 12.5px 'JetBrains Mono',monospace; color: var(--text); }
     .gc-ago { font: 400 10.5px 'JetBrains Mono',monospace; color: var(--text-muted); }
     .gc-cas { font: 400 16px/1.6 'Inter','Noto Sans KR',sans-serif; color: var(--text); margin: 0; white-space: pre-line; word-break: break-word; }
-    .gc-txt { font: 400 13.5px/1.6 'Inter','Noto Sans KR',sans-serif; color: var(--text); margin: 0; word-break: break-word; }
+    .gc-txt { font: 400 16px/1.6 'Inter','Noto Sans KR',sans-serif; color: var(--text); margin: 0; word-break: break-word; }
     .gc-link-url { display: block; font: 500 12px 'JetBrains Mono',monospace; color: var(--text-muted); text-decoration: underline; margin: 8px 0 0; word-break: break-all; }
     .gc-foot { display: flex; align-items: center; padding: 7px 10px; border-top: 1px solid var(--border); gap: 4px; }
     .gc-foot-spacer { flex: 1; }
@@ -360,6 +360,8 @@
       margin: 8px 0 90px;
       border: 1px solid var(--border);
       border-radius: 18px;
+      background-image: radial-gradient(circle, rgba(0,98,65,.10) 1.1px, transparent 1.1px);
+      background-size: 19px 19px;
       overflow: hidden;
     }
     .feed-branch-wrap::before {
@@ -806,9 +808,9 @@ SB.auth.onAuthStateChange(function(event) {
 // ── 공통: 탭바 ──────────────────────────────────────────────────────
 function tabBar(active, me) {
   var tabs = [
-    {icon:'ti-home',    label:'피드',  path:'/'},
+    {icon:'ti-home',    label:'feed',  path:'/'},
     {icon:'ti-pencil',  label:'mark',  path:'/write'},
-    {icon:'ti-notes',   label:'내 글', path:'/my'},
+    {icon:'ti-notes',   label:'history', path:'/my'},
     {icon:null,         label:'my page', path:'/profile'}
   ];
   var nav = document.createElement('nav');
@@ -2066,7 +2068,7 @@ async function detailPage(pid, me) {
       authorAvatar(42),
       '<div><div style="font-size:13px;color:var(--text);">'+nickHtml(post.nick,post.pseudo)+'</div>',
       '<div style="font-size:11px;color:var(--text-muted);margin-top:3px;">'+relTime(post.upd||post.at)+'</div></div></div>',
-      '<div id="d-post-body" style="font-size:12px;color:var(--text-body);line-height:1.7;word-break:break-word;margin-bottom:14px;min-height:1.7em;"></div>',
+      '<div id="d-post-body" style="font-size:13px;color:var(--text-body);line-height:1.7;word-break:break-word;margin-bottom:14px;min-height:1.7em;"></div>',
       '<div style="display:flex;align-items:center;gap:14px;">',
       '<button class="like-btn'+(liked?' liked':'')+'" id="d-lbtn"><span id="d-lico">'+(liked?'♥':'♡')+'</span><span style="font-size:12px;" id="d-lcnt">'+(post.likes_count||0)+'</span></button>',
       '<span style="font-size:12px;color:var(--text-muted);">💬 <span id="d-cmt-cnt">'+(post.comments_count||0)+'</span></span>',
