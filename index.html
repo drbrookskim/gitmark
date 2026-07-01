@@ -270,6 +270,11 @@
       user-select: none;
     }
     .card-tile-wrap { flex: 1; min-width: 0; }
+    /* 내 글 피드: dot↔카드 연결 가로선 */
+    .card-row .gcard::after {
+      content: ''; position: absolute; top: 26px; left: -22px;
+      width: 22px; border-top: 1px solid var(--rail);
+    }
 
     .tile {
       border: 0.5px solid var(--border);
@@ -351,8 +356,6 @@
       margin: 8px 0 90px;
       border: 1px solid var(--border);
       border-radius: 18px;
-      background-image: radial-gradient(circle, rgba(0,98,65,.10) 1.1px, transparent 1.1px);
-      background-size: 19px 19px;
       overflow: hidden;
     }
     .feed-branch-wrap::before {
@@ -385,11 +388,11 @@
       .branch-row.casual .gcard .gnode { left: auto; right: -30px; top: 22px; }
       .branch-row.info   .gcard .gnode { left: -30px; right: auto; top: 22px; }
       .branch-row.casual .gcard::after {
-        content: ''; position: absolute; top: 26px; right: -26px;
+        content: ''; position: absolute; top: 26px; left: auto; right: -26px;
         width: 26px; border-top: 2px solid var(--rail);
       }
       .branch-row.info .gcard::after {
-        content: ''; position: absolute; top: 26px; left: -26px;
+        content: ''; position: absolute; top: 26px; right: auto; left: -26px;
         width: 26px; border-top: 2px solid var(--rail);
       }
     }
