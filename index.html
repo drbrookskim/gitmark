@@ -1517,7 +1517,7 @@ function makeCard(post, me, idx, likedSet, avatarMap) {
     }
   }
 
-  var likeHtml = '<button class="gc-like-btn'+(liked?' liked':'')+'" id="lbtn-'+post.id+'">'+(liked?'♥':'♡')+' <span id="lcnt-'+post.id+'">'+(post.likes_count||0)+'</span></button>';
+  var likeHtml = '<button class="gc-like-btn'+(liked?' liked':'')+'" id="lbtn-'+post.id+'"><i class="ti '+(liked?'ti-heart-filled':'ti-heart')+'" id="lico-'+post.id+'"></i> <span id="lcnt-'+post.id+'">'+(post.likes_count||0)+'</span></button>';
 
   tile.innerHTML = [
     '<div class="gc-body">',
@@ -1526,7 +1526,7 @@ function makeCard(post, me, idx, likedSet, avatarMap) {
     '</div>',
     '<div class="gc-foot">',
     // 좌하: 댓글
-    '<button class="gc-icon-btn" id="cmtbtn-'+post.id+'">💬 <span id="cmtcnt-'+post.id+'">'+cmtCount+'</span></button>',
+    '<button class="gc-icon-btn" id="cmtbtn-'+post.id+'"><i class="ti ti-message-circle"></i> <span id="cmtcnt-'+post.id+'">'+cmtCount+'</span></button>',
     // 댓글 오른쪽: 해시태그
     (post.tags && post.tags.length ? post.tags.map(function(t){
       return '<span onclick="event.stopPropagation();_setTagFilter(\''+esc(t)+'\')" style="font:600 10px \'JetBrains Mono\',monospace;color:var(--accent);cursor:pointer;padding:2px 6px;border-radius:100px;background:rgba(0,117,74,.08);white-space:nowrap;">#'+esc(t)+'</span>';
@@ -1562,15 +1562,16 @@ function makeCard(post, me, idx, likedSet, avatarMap) {
   tile.querySelector('#lbtn-'+post.id).onclick = async function(e) {
     e.stopPropagation();
     var btn = this;
+    var icoEl = document.getElementById('lico-'+post.id);
     var wasLiked = btn.classList.contains('liked');
     btn.classList.toggle('liked', !wasLiked);
-    btn.firstChild.textContent = !wasLiked ? '♥' : '♡';
+    icoEl.className = 'ti ' + (!wasLiked ? 'ti-heart-filled' : 'ti-heart');
     var cntEl = document.getElementById('lcnt-'+post.id);
     cntEl.textContent = !wasLiked ? (parseInt(cntEl.textContent)||0)+1 : Math.max(0,(parseInt(cntEl.textContent)||0)-1);
     var { data: nowLiked } = await SB.rpc('toggle_like', { p_post_id: post.id, p_uid: me.uid });
     if (typeof nowLiked === 'boolean' && nowLiked !== !wasLiked) {
       btn.classList.toggle('liked', nowLiked);
-      btn.firstChild.textContent = nowLiked ? '♥' : '♡';
+      icoEl.className = 'ti ' + (nowLiked ? 'ti-heart-filled' : 'ti-heart');
     }
   };
   var moreBtn = tile.querySelector('#more-'+post.id);
@@ -2074,15 +2075,15 @@ async function detailPage(pid, me) {
       '<div style="font-size:11px;color:var(--text-muted);margin-top:3px;">'+relTime(post.upd||post.at)+'</div></div></div>',
       '<div id="d-post-body" style="font-size:13px;color:var(--text-body);line-height:1.7;word-break:break-word;margin-bottom:14px;min-height:1.7em;"></div>',
       '<div style="display:flex;align-items:center;gap:14px;">',
-      '<button class="like-btn'+(liked?' liked':'')+'" id="d-lbtn"><span id="d-lico">'+(liked?'♥':'♡')+'</span><span style="font-size:12px;" id="d-lcnt">'+(post.likes_count||0)+'</span></button>',
-      '<span style="font-size:12px;color:var(--text-muted);">💬 <span id="d-cmt-cnt">'+(post.comments_count||0)+'</span></span>',
+      '<button class="like-btn'+(liked?' liked':'')+'" id="d-lbtn"><i class="ti '+(liked?'ti-heart-filled':'ti-heart')+'" id="d-lico"></i><span style="font-size:12px;" id="d-lcnt">'+(post.likes_count||0)+'</span></button>',
+      '<button class="like-btn" id="d-cmtbtn"><i class="ti ti-message-circle"></i><span style="font-size:12px;">댓글</span><span style="display:none;" id="d-cmt-cnt">'+(post.comments_count||0)+'</span></button>',
       me.uid===post.uid ? '<button class="del-btn" id="d-del">삭제</button>' : '',
       '</div>'
     ].join('');
     postEl.querySelector('#d-lbtn').onclick = async function() {
       var wasLiked = this.classList.contains('liked');
       this.classList.toggle('liked', !wasLiked);
-      document.getElementById('d-lico').textContent = !wasLiked?'♥':'♡';
+      document.getElementById('d-lico').className = 'ti ' + (!wasLiked?'ti-heart-filled':'ti-heart');
       var cntEl = document.getElementById('d-lcnt');
       cntEl.textContent = !wasLiked?(parseInt(cntEl.textContent)||0)+1:Math.max(0,(parseInt(cntEl.textContent)||0)-1);
       await SB.rpc('toggle_like', { p_post_id: pid, p_uid: me.uid });
@@ -2099,6 +2100,11 @@ async function detailPage(pid, me) {
   wrap.appendChild(postEl);
   var bodyEl = postEl.querySelector('#d-post-body');
   if (bodyEl) typewriterReveal(bodyEl, post.txt, function() { bodyEl.innerHTML = linkify(post.txt); });
+  var cmtBtn = postEl.querySelector('#d-cmtbtn');
+  if (cmtBtn) cmtBtn.onclick = function() {
+    var inpEl = document.getElementById('d-inp');
+    if (inpEl) { inpEl.scrollIntoView({ behavior: 'smooth', block: 'center' }); inpEl.focus(); }
+  };
 
   // ── 댓글 입력창 (포스트 바로 아래, 인라인) ──
   var cInput = document.createElement('div');
