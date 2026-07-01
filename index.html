@@ -143,6 +143,22 @@
       padding: 14px 16px; display: flex;
       align-items: center; justify-content: space-between;
     }
+    .logo-tagline {
+      display: inline-block;
+      font: 400 9px 'JetBrains Mono', monospace;
+      color: var(--text-muted);
+      margin-left: 8px; padding-left: 8px;
+      border-left: 1px solid var(--border);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      max-width: 34vw;
+    }
+    @media (min-width: 768px) {
+      .logo-tagline {
+        font-size: 12px;
+        margin-left: 10px; padding-left: 10px;
+        max-width: none;
+      }
+    }
     /* 피드 전용: 두 헤더를 묶는 fixed 래퍼 */
     .feed-hdr-wrap {
       position: fixed; top: 0; z-index: 20;
@@ -1036,7 +1052,7 @@ async function feedPage(me) {
   hdr.className = 'sticky-header feed-fixed-hdr';
   var logoBtn = document.createElement('button');
   logoBtn.style.cssText = 'display:flex;align-items:center;gap:8px;background:none;border:none;cursor:pointer;padding:0;color:var(--text);';
-  logoBtn.innerHTML = _SVG_LOGO + '<span style="font:700 18px \'JetBrains Mono\',monospace;color:var(--text);">gitmark</span>';
+  logoBtn.innerHTML = _SVG_LOGO + '<span style="font:700 18px \'JetBrains Mono\',monospace;color:var(--text);">gitmark</span>' + '<span class="logo-tagline">fragments &rarr; dots &rarr; connections</span>';
   logoBtn.onclick = function() { R.go('/'); };
   hdr.appendChild(logoBtn);
   // +mark 와 검색 버튼을 함께 묶어 오른쪽 정렬
