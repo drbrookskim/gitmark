@@ -2100,7 +2100,7 @@ async function detailPage(pid, me) {
       authorAvatar(42),
       '<div><div style="font-size:13px;color:var(--text);">'+nickHtml(post.nick,post.pseudo)+'</div>',
       '<div style="font-size:11px;color:var(--text-muted);margin-top:3px;">'+relTime(post.upd||post.at)+'</div></div></div>',
-      '<div id="d-post-body" style="font-size:13px;color:var(--text-body);line-height:1.7;word-break:break-word;margin-bottom:14px;min-height:1.7em;"></div>',
+      '<div id="d-post-body" style="font-size:14px;color:var(--text-body);line-height:1.7;word-break:break-word;margin-bottom:14px;min-height:1.7em;"></div>',
       '<div style="display:flex;align-items:center;gap:14px;">',
       '<button class="like-btn'+(liked?' liked':'')+'" id="d-lbtn"><i class="ti '+(liked?'ti-heart-filled':'ti-heart')+'" id="d-lico"></i><span style="font-size:12px;" id="d-lcnt">'+(post.likes_count||0)+'</span></button>',
       '<button class="like-btn" id="d-cmtbtn"><i class="ti ti-message-circle"></i><span style="font-size:12px;">댓글</span><span style="display:none;" id="d-cmt-cnt">'+(post.comments_count||0)+'</span></button>',
