@@ -2060,10 +2060,17 @@ async function detailPage(pid, me) {
   var hdr = document.createElement('div');
   hdr.className = 'sticky-header';
   var backBtn = document.createElement('button');
-  backBtn.className = 'btn-ghost';
-  backBtn.textContent = '← 피드로';
+  backBtn.textContent = '←';
+  backBtn.style.cssText = 'font-size:22px;color:var(--text-muted);background:none;border:none;cursor:pointer;padding:0;line-height:1;';
   backBtn.onclick = function() { R.go('/'); };
+  var hdrTitle = document.createElement('span');
+  hdrTitle.style.cssText = 'font:700 15px \'Inter\',\'Noto Sans KR\',sans-serif;color:var(--text);';
+  hdrTitle.textContent = 'mark';
+  var hdrSpacer = document.createElement('span');
+  hdrSpacer.style.cssText = 'width:22px;';
   hdr.appendChild(backBtn);
+  hdr.appendChild(hdrTitle);
+  hdr.appendChild(hdrSpacer);
   wrap.appendChild(hdr);
 
   var [postRes, likeRes, cmtRes] = await Promise.all([
