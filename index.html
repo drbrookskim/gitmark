@@ -2517,14 +2517,74 @@ async function profilePage(me) {
       if (isOn) {
         await unsubscribeFromPush(me.uid);
         setNotifToggleUI(false);
-      } else {
+        return;
+      }
+      var isMobile = window.matchMedia('(max-width:767px)').matches;
+      var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      var isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+      async function doSubscribe() {
         var ok = await subscribeToPush(me.uid);
         if (!ok) { gModal('알림 권한이 거부되었어요.<br>브라우저 설정에서 허용해 주세요.', function(){}); return; }
         setNotifToggleUI(true);
       }
+
+      if (isMobile && isIOS && !isStandalone) {
+        gModal(
+          '<b>iOS에서 알림 받는 방법</b><br><br>' +
+          '1. 하단 공유 버튼 <span style="font-size:15px;">⎋</span>을 눌러요<br>' +
+          '2. \'홈 화면에 추가\'를 선택해요<br>' +
+          '3. 홈 화면의 gitmark 아이콘으로 다시 열고<br>이 화면에서 알림을 켜주세요',
+          function(){}, '확인'
+        );
+        return;
+      }
+      if (isMobile) {
+        gModal(
+          '알림을 받으려면 다음에 뜨는 팝업에서<br><b>\'허용\'</b>을 눌러주세요.',
+          doSubscribe, '계속'
+        );
+        return;
+      }
+      await doSubscribe();
     };
   })();
   wrap.appendChild(notifSec);
+
+  // 알림 히스토리 (연결 알림 / 일일 요약)
+  var notifHistSec = document.createElement('div');
+  notifHistSec.style.cssText = 'border-bottom:0.5px solid var(--border);padding:4px 0 6px;';
+  var notifHistHdr = document.createElement('div');
+  notifHistHdr.style.cssText = 'padding:10px 16px 4px;font-size:9px;color:var(--text-dim);letter-spacing:.12em;font-family:"Inter","Noto Sans KR",sans-serif;';
+  notifHistHdr.textContent = 'RECENT NOTIFICATIONS';
+  notifHistSec.appendChild(notifHistHdr);
+
+  var { data: notifList } = await SB.from('notifications').select('*').eq('uid', me.uid).order('created_at', { ascending: false }).limit(20);
+  if (!notifList || notifList.length === 0) {
+    var notifEmpty = document.createElement('div');
+    notifEmpty.style.cssText = 'padding:14px 16px;font-size:11px;color:var(--text-dim);';
+    notifEmpty.textContent = '아직 받은 알림이 없어요.';
+    notifHistSec.appendChild(notifEmpty);
+  } else {
+    notifList.forEach(function(n) {
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;gap:10px;align-items:flex-start;padding:10px 16px;';
+      var icon = document.createElement('div');
+      icon.style.cssText = 'width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:rgba(0,117,74,.10);color:var(--accent);margin-top:1px;';
+      icon.innerHTML = n.type === 'connection'
+        ? '<i class="ti ti-git-merge" style="font-size:14px;"></i>'
+        : '<i class="ti ti-calendar-stats" style="font-size:14px;"></i>';
+      var textWrap = document.createElement('div');
+      textWrap.style.cssText = 'flex:1;min-width:0;';
+      textWrap.innerHTML = '<div style="font-size:12px;color:var(--text);font-weight:600;">'+esc(n.title)+'</div>'
+        + '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">'+esc(n.body)+'</div>'
+        + '<div style="font-size:10px;color:var(--text-dim);margin-top:3px;font-family:\'JetBrains Mono\',monospace;">'+relTime(new Date(n.created_at).getTime())+'</div>';
+      row.appendChild(icon);
+      row.appendChild(textWrap);
+      notifHistSec.appendChild(row);
+    });
+  }
+  wrap.appendChild(notifHistSec);
 
   // 테마 설정 섹션
   var themeOpts = [
