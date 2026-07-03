@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "skillboard-preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "-p", "4324", "/Users/nelcome/Codes/Claude_code_repository/skillboard"],
+      "port": 4324,
+      "autoPort": false
+    },
+    {
+      "name": "gitmark-preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "-p", "4325", "/Users/nelcome/Codes/Claude_code_repository/gitmark"],
+      "port": 4325,
+      "autoPort": false
+    }
+  ]
+}

@@ -575,6 +575,61 @@ var SB = window.supabase.createClient(
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFudmdxZXlnaHF1d3J2c2ptaXZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4Mjg4MzcsImV4cCI6MjA4NzQwNDgzN30.Lwr3BWTRDyaxN9kEGdj26i-P82Aw_h052e_Ia31WBk0'
 );
 
+// ── 푸시 알림 ──────────────────────────────────────────────────────
+var VAPID_PUBLIC_KEY = 'BFKTeOFCTytQYD41kjGdrvaW8qW20UIoClxVx9RtYSZc1h3MonH1aZfdMrVuDg5cTEXn2mDpIrgoZERsFpR83D4';
+
+function urlBase64ToUint8Array(base64String) {
+  var padding = '='.repeat((4 - base64String.length % 4) % 4);
+  var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  var raw = atob(base64);
+  var out = new Uint8Array(raw.length);
+  for (var i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+  return out;
+}
+
+async function getPushSubscription() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
+  var reg = await navigator.serviceWorker.ready;
+  return reg.pushManager.getSubscription();
+}
+
+async function subscribeToPush(uid) {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
+  var permission = await Notification.requestPermission();
+  if (permission !== 'granted') return false;
+  var reg = await navigator.serviceWorker.ready;
+  var sub = await reg.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+  });
+  var json = sub.toJSON();
+  await SB.from('push_subscriptions').upsert({
+    uid: uid, endpoint: json.endpoint, p256dh: json.keys.p256dh, auth: json.keys.auth
+  }, { onConflict: 'uid,endpoint' });
+  return true;
+}
+
+async function unsubscribeFromPush(uid) {
+  var sub = await getPushSubscription();
+  if (!sub) return;
+  var endpoint = sub.endpoint;
+  await sub.unsubscribe();
+  await SB.from('push_subscriptions').delete().eq('uid', uid).eq('endpoint', endpoint);
+}
+
+async function notifyConnectionCheck(postId) {
+  try {
+    var { data: sess } = await SB.auth.getSession();
+    var token = sess && sess.session && sess.session.access_token;
+    if (!token) return;
+    await fetch('https://anvgqeyghquwrvsjmivj.supabase.co/functions/v1/notify-connection', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ post_id: postId })
+    });
+  } catch (e) { /* 알림 실패는 게시글 작성 흐름을 막지 않음 */ }
+}
+
 // ── 테마(로컬 유지) ──────────────────────────────────────────────────
 var S = {
   theme: function() { try { return localStorage.getItem('gm2_theme') || 'light'; } catch(e) { return 'light'; } },
@@ -1696,7 +1751,9 @@ function writePage(me) {
     var allTags = extractTags(txt).concat(_writeTags).filter(function(t,i,a){ return a.indexOf(t)===i; });
     var postNick = anonOn ? '익명' : me.nick;
     var postPseudo = anonOn ? true : me.pseudo;
-    await SB.from('posts').insert({ id: mkId(), uid: me.uid, nick: postNick, pseudo: postPseudo, txt: txt, tags: allTags, at: now, upd: now, likes_count: 0, comments_count: 0 });
+    var newPostId = mkId();
+    await SB.from('posts').insert({ id: newPostId, uid: me.uid, nick: postNick, pseudo: postPseudo, txt: txt, tags: allTags, at: now, upd: now, likes_count: 0, comments_count: 0 });
+    if (allTags.length) notifyConnectionCheck(newPostId);
     _writeTags = [];
     _writeDraft = '';
     R.go('/');
@@ -2411,6 +2468,47 @@ async function profilePage(me) {
   }
   renderProf(false);
   wrap.appendChild(prof);
+
+  // 알림 설정 섹션
+  var notifSec = document.createElement('div');
+  notifSec.style.cssText = 'border-bottom:0.5px solid var(--border);padding:4px 0 6px;';
+  var notifHdr = document.createElement('div');
+  notifHdr.style.cssText = 'padding:10px 16px 4px;font-size:9px;color:var(--text-dim);letter-spacing:.12em;font-family:"Inter","Noto Sans KR",sans-serif;';
+  notifHdr.textContent = 'NOTIFICATIONS';
+  notifSec.appendChild(notifHdr);
+
+  var notifRow = document.createElement('div');
+  notifRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:9px 16px;gap:10px;';
+  var notifLabelWrap = document.createElement('div');
+  notifLabelWrap.innerHTML = '<div style="font-size:12px;color:var(--text);">알림 받기</div><div style="font-size:10px;color:var(--text-dim);margin-top:2px;">새로운 연결과 하루 요약을 푸시로 받아요</div>';
+  var notifToggle = document.createElement('div');
+  notifToggle.id = 'notif-toggle';
+  notifToggle.style.cssText = 'width:42px;height:24px;border-radius:100px;background:var(--border);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;';
+  notifToggle.innerHTML = '<div style="width:18px;height:18px;border-radius:50%;background:#fff;position:absolute;top:3px;left:3px;transition:left .2s;"></div>';
+  notifRow.appendChild(notifLabelWrap);
+  notifRow.appendChild(notifToggle);
+  notifSec.appendChild(notifRow);
+
+  function setNotifToggleUI(on) {
+    notifToggle.style.background = on ? 'var(--accent)' : 'var(--border)';
+    notifToggle.firstElementChild.style.left = on ? '21px' : '3px';
+  }
+  (async function() {
+    var sub = await getPushSubscription();
+    setNotifToggleUI(!!sub);
+    notifToggle.onclick = async function() {
+      var isOn = !!(await getPushSubscription());
+      if (isOn) {
+        await unsubscribeFromPush(me.uid);
+        setNotifToggleUI(false);
+      } else {
+        var ok = await subscribeToPush(me.uid);
+        if (!ok) { gModal('알림 권한이 거부되었어요.<br>브라우저 설정에서 허용해 주세요.', function(){}); return; }
+        setNotifToggleUI(true);
+      }
+    };
+  })();
+  wrap.appendChild(notifSec);
 
   // 테마 설정 섹션
   var themeOpts = [
