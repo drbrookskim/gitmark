@@ -651,6 +651,23 @@ async function notifyConnectionCheck(postId) {
   } catch (e) { /* 알림 실패는 게시글 작성 흐름을 막지 않음 */ }
 }
 
+async function fetchOgImageAndSave(postId, url) {
+  try {
+    var { data: sess } = await SB.auth.getSession();
+    var token = sess && sess.session && sess.session.access_token;
+    if (!token) return;
+    var res = await fetch('https://anvgqeyghquwrvsjmivj.supabase.co/functions/v1/fetch-og-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ url: url })
+    });
+    var json = await res.json();
+    if (json && json.image) {
+      await SB.from('posts').update({ og_image: json.image }).eq('id', postId);
+    }
+  } catch (e) { /* 썸네일 실패는 게시글 작성 흐름을 막지 않음 */ }
+}
+
 // ── 테마(로컬 유지) ──────────────────────────────────────────────────
 var S = {
   theme: function() { try { return localStorage.getItem('gm2_theme') || 'light'; } catch(e) { return 'light'; } },
@@ -1661,7 +1678,11 @@ function makeCard(post, me, idx, likedSet, avatarMap) {
     '<div class="gc-meta">',
     '<span class="gc-who">'+nickHtml(post.nick, post.pseudo)+'</span>',
     '<span class="gc-ago">'+relTime(post.upd||post.at)+'</span>',
-    '</div></div>'
+    '</div>',
+    (isInfo && post.og_image)
+      ? '<img src="'+esc(post.og_image)+'" referrerpolicy="no-referrer" loading="lazy" onerror="this.remove()" style="width:40px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0;margin-left:auto;border:1px solid var(--card-border);">'
+      : '',
+    '</div>'
   ].join('');
 
   var bodyHtml;
@@ -1829,6 +1850,8 @@ function writePage(me) {
     var newPostId = mkId();
     await SB.from('posts').insert({ id: newPostId, uid: me.uid, nick: postNick, pseudo: postPseudo, txt: txt, tags: allTags, at: now, upd: now, likes_count: 0, comments_count: 0 });
     if (allTags.length) notifyConnectionCheck(newPostId);
+    var submittedUrl = extractUrl(txt);
+    if (submittedUrl) fetchOgImageAndSave(newPostId, submittedUrl);
     _writeTags = [];
     _writeDraft = '';
     R.go('/');
