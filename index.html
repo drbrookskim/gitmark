@@ -160,19 +160,23 @@
       align-items: center; justify-content: space-between;
     }
     .logo-tagline {
-      display: inline-block;
+      display: -webkit-box;
       font: 400 9px 'JetBrains Mono', monospace;
       color: var(--text-muted);
       margin-left: 8px; padding-left: 8px;
       border-left: 1px solid var(--border);
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      max-width: 34vw;
+      line-height: 1.3;
+      -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+      max-width: 30vw;
+      flex-shrink: 1;
     }
     @media (min-width: 768px) {
       .logo-tagline {
+        display: inline-block;
         font-size: 12px;
         margin-left: 10px; padding-left: 10px;
         max-width: none;
+        white-space: nowrap;
       }
     }
     /* 피드 전용: 두 헤더를 묶는 fixed 래퍼 */
@@ -197,6 +201,7 @@
       border-radius: 100px; padding: 6px 16px; cursor: pointer;
       font-family: 'Inter', 'Noto Sans KR', sans-serif;
       transition: opacity .15s;
+      white-space: nowrap; flex-shrink: 0;
     }
     .write-pill:hover { opacity: .85; }
     .edit-pill {
@@ -1126,7 +1131,7 @@ async function feedPage(me) {
   var hdr = document.createElement('div');
   hdr.className = 'sticky-header feed-fixed-hdr';
   var logoBtn = document.createElement('button');
-  logoBtn.style.cssText = 'display:flex;align-items:center;gap:8px;background:none;border:none;cursor:pointer;padding:0;color:var(--text);';
+  logoBtn.style.cssText = 'display:flex;align-items:center;gap:8px;background:none;border:none;cursor:pointer;padding:0;color:var(--text);min-width:0;';
   logoBtn.innerHTML = _SVG_LOGO + '<span style="font:700 18px \'JetBrains Mono\',monospace;color:var(--text);">gitmark</span>' + '<span class="logo-tagline">fragments &rarr; dots &rarr; connections</span>';
   logoBtn.onclick = function() { R.go('/'); };
   hdr.appendChild(logoBtn);
@@ -1155,6 +1160,7 @@ async function feedPage(me) {
     if (_searchWrap) { _searchWrap.remove(); _searchWrap = null; }
     searchBarEl = null;
     searchBtn.style.borderColor = '';
+    if (!indexWrap) return;
     indexWrap.querySelectorAll('.branch-row').forEach(function(r){
       r.style.display = '';
       r.querySelectorAll('.s-hl').forEach(function(el) {
@@ -1167,13 +1173,15 @@ async function feedPage(me) {
     searchBtn.style.borderColor = 'var(--text)';
     // 검색 박스 래퍼 (아이콘 + input + 취소 버튼)
     var searchWrap = document.createElement('div');
-    searchWrap.style.cssText = 'position:absolute;left:50%;transform:translateX(-50%);top:calc(100% + 8px);width:min(320px,80vw);z-index:50;display:flex;align-items:center;gap:6px;background:var(--bg);border:0.5px solid var(--border);border-radius:8px;padding:6px 10px;box-shadow:0 4px 16px rgba(0,0,0,.08);';
+    searchWrap.style.cssText = 'position:absolute;left:50%;transform:translateX(-50%);top:calc(100% + 8px);width:min(320px,80vw);z-index:50;display:flex;flex-direction:column;background:var(--bg);border:0.5px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.08);overflow:hidden;';
+    var searchInputRow = document.createElement('div');
+    searchInputRow.style.cssText = 'display:flex;align-items:center;gap:6px;padding:6px 10px;';
     var searchIcon = document.createElement('i');
     searchIcon.className = 'ti ti-search';
     searchIcon.style.cssText = 'font-size:13px;color:var(--text-muted);flex-shrink:0;';
     searchBarEl = document.createElement('input');
     searchBarEl.type = 'text';
-    searchBarEl.placeholder = '검색…';
+    searchBarEl.placeholder = '검색… (#태그로 해시태그 검색)';
     searchBarEl.style.cssText = 'flex:1;background:none;border:none;outline:none;font-size:13px;font-family:\'Inter\',\'Noto Sans KR\',sans-serif;color:var(--text);min-width:0;';
     var clearBtn = document.createElement('button');
     clearBtn.innerHTML = '<i class="ti ti-x" style="font-size:12px;"></i>';
@@ -1188,13 +1196,48 @@ async function feedPage(me) {
     searchBarEl.addEventListener('input', function() {
       clearBtn.style.display = searchBarEl.value ? 'block' : 'none';
     });
-    searchWrap.appendChild(searchIcon);
-    searchWrap.appendChild(searchBarEl);
-    searchWrap.appendChild(clearBtn);
+    searchInputRow.appendChild(searchIcon);
+    searchInputRow.appendChild(searchBarEl);
+    searchInputRow.appendChild(clearBtn);
+    searchWrap.appendChild(searchInputRow);
+    var tagSuggestBox = document.createElement('div');
+    tagSuggestBox.style.cssText = 'display:none;border-top:1px solid var(--border-sub);max-height:220px;overflow-y:auto;';
+    searchWrap.appendChild(tagSuggestBox);
     _searchWrap = searchWrap;
     hdr.style.position = 'relative';
     hdr.appendChild(searchWrap);
     searchBarEl.focus();
+
+    // 해시태그 검색 (# 로 시작하면 태그 자동완성 목록 표시)
+    function renderTagSuggest(prefix) {
+      var tagCounts = {};
+      posts.forEach(function(p) {
+        (p.tags || []).forEach(function(t) {
+          if (!prefix || t.indexOf(prefix) === 0) tagCounts[t] = (tagCounts[t] || 0) + 1;
+        });
+      });
+      var tags = Object.keys(tagCounts).sort(function(a, b) { return tagCounts[b] - tagCounts[a]; }).slice(0, 8);
+      if (tags.length === 0) {
+        tagSuggestBox.style.display = 'block';
+        tagSuggestBox.innerHTML = '<div style="padding:10px 14px;font-size:11px;color:var(--text-dim);">일치하는 해시태그가 없어요.</div>';
+        return;
+      }
+      tagSuggestBox.style.display = 'block';
+      tagSuggestBox.innerHTML = tags.map(function(t) {
+        return '<button class="tag-suggest-row" data-tag="'+esc(t)+'" style="display:flex;align-items:center;width:100%;padding:9px 14px;background:none;border:none;cursor:pointer;font-family:\'JetBrains Mono\',monospace;font-size:12px;color:var(--accent);text-align:left;gap:8px;">'
+          + '<span style="flex:1;">#'+esc(t)+'</span>'
+          + '<span style="font-size:10px;color:var(--text-dim);">'+tagCounts[t]+'</span>'
+          + '</button>';
+      }).join('');
+      tagSuggestBox.querySelectorAll('.tag-suggest-row').forEach(function(row) {
+        row.onmouseenter = function() { row.style.background = 'var(--bg-surface)'; };
+        row.onmouseleave = function() { row.style.background = 'none'; };
+        row.onclick = function() {
+          _setTagFilter(row.dataset.tag);
+          _closeSearch();
+        };
+      });
+    }
     _searchOutsideHandler = function(e) {
       if (!searchWrap.contains(e.target) && e.target !== searchBtn && !searchBtn.contains(e.target)) {
         _closeSearch();
@@ -1232,7 +1275,16 @@ async function feedPage(me) {
     });
     searchBarEl.oninput = function(e) {
       if (_searchComposing) return;
-      var q = searchBarEl.value.trim().toLowerCase();
+      var raw = searchBarEl.value.trim().toLowerCase();
+      if (raw.indexOf('#') === 0) {
+        tagSuggestBox.style.display = 'block';
+        if (indexWrap) indexWrap.querySelectorAll('.branch-row').forEach(function(r) { r.style.display = ''; });
+        renderTagSuggest(raw.slice(1));
+        return;
+      }
+      tagSuggestBox.style.display = 'none';
+      var q = raw;
+      if (!indexWrap) return;
       indexWrap.querySelectorAll('.branch-row').forEach(function(r) {
         var txt = r.innerText.toLowerCase();
         var show = !q || txt.includes(q);
@@ -1244,7 +1296,14 @@ async function feedPage(me) {
       });
     };
     searchBarEl.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') _closeSearch();
+      if (e.key === 'Escape') { _closeSearch(); return; }
+      if (e.key === 'Enter') {
+        var q = searchBarEl.value.trim().toLowerCase();
+        if (q.indexOf('#') === 0 && q.length > 1) {
+          _setTagFilter(q.slice(1));
+          _closeSearch();
+        }
+      }
     });
   };
   hdrActions.appendChild(searchBtn);
