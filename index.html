@@ -280,8 +280,8 @@
     .gc-meta { display: flex; flex-direction: column; gap: 1px; }
     .gc-who { font: 700 12.5px 'JetBrains Mono',monospace; color: var(--text); }
     .gc-ago { font: 400 10.5px 'JetBrains Mono',monospace; color: var(--card-text-muted); }
-    .gc-cas { font: 400 16px/1.6 'Inter','Noto Sans KR',sans-serif; color: var(--text); margin: 0; white-space: pre-line; word-break: break-word; }
-    .gc-txt { font: 400 16px/1.6 'Inter','Noto Sans KR',sans-serif; color: var(--text); margin: 0; word-break: break-word; }
+    .gc-cas { font: 400 15px/1.6 'Inter','Noto Sans KR',sans-serif; color: var(--text); margin: 0; white-space: pre-line; word-break: break-word; }
+    .gc-txt { font: 400 15px/1.6 'Inter','Noto Sans KR',sans-serif; color: var(--text); margin: 0; word-break: break-word; }
     .gc-link-url { display: block; font: 500 12px 'JetBrains Mono',monospace; color: var(--card-text-muted); text-decoration: underline; margin: 8px 0 0; word-break: break-all; }
     .gc-foot { display: flex; align-items: center; padding: 7px 10px; border-top: 1px solid var(--card-border); gap: 4px; }
     .gc-foot-spacer { flex: 1; }
@@ -1959,7 +1959,7 @@ function writePage(me) {
   var ta = document.createElement('textarea');
   ta.id = 'write-ta';
   ta.placeholder = _writeType === 'link' ? '공유를 마크하세요.' : '일상을 마크하세요.';
-  ta.style.cssText = 'font-size:14px;line-height:1.7;resize:none;height:196px;background:transparent;border:none;outline:none;width:100%;overflow-y:auto;';
+  ta.style.cssText = 'font-size:15px;line-height:1.7;resize:none;height:196px;background:transparent;border:none;outline:none;width:100%;overflow-y:auto;';
   if (_writeDraft) ta.value = _writeDraft;
   ta.oninput = function() {
     _writeDraft = this.value;
@@ -2239,7 +2239,7 @@ async function detailPage(pid, me) {
       authorAvatar(42),
       '<div><div style="font-size:13px;color:var(--text);">'+nickHtml(post.nick,post.pseudo)+'</div>',
       '<div style="font-size:11px;color:var(--text-muted);margin-top:3px;">'+relTime(post.upd||post.at)+'</div></div></div>',
-      '<div id="d-post-body" style="font-size:14px;color:var(--text-body);line-height:1.7;word-break:break-word;margin-bottom:14px;min-height:1.7em;"></div>',
+      '<div id="d-post-body" style="font-size:15px;color:var(--text-body);line-height:1.7;word-break:break-word;margin-bottom:14px;min-height:1.7em;"></div>',
       '<div style="display:flex;align-items:center;gap:14px;">',
       '<button class="like-btn'+(liked?' liked':'')+'" id="d-lbtn"><i class="ti '+(liked?'ti-heart-filled':'ti-heart')+'" id="d-lico"></i><span style="font-size:12px;" id="d-lcnt">'+(post.likes_count||0)+'</span></button>',
       '<button class="like-btn" id="d-cmtbtn"><i class="ti ti-message-circle"></i><span style="font-size:12px;">댓글</span><span style="display:none;" id="d-cmt-cnt">'+(post.comments_count||0)+'</span></button>',
