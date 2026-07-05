@@ -837,24 +837,6 @@ function scatterAndDelete(tile, onDone) {
 
 function stopOpacityLoop() {} // no-op (opacity loop removed)
 
-// D: 타이핑 리듬 출현 — 자연스러운 타이핑 패턴으로 글자가 한 자씩 등장
-function typewriterReveal(el, txt, onDone) {
-  var i = 0;
-  el.textContent = '';
-  function tick() {
-    if (i >= txt.length) { if (onDone) onDone(); return; }
-    var ch = txt[i++];
-    if (ch === '\n') el.appendChild(document.createElement('br'));
-    else el.appendChild(document.createTextNode(ch));
-    var delay;
-    if ('.,。！？\n'.indexOf(ch) >= 0) delay = 260 + Math.random()*200;
-    else if (Math.random() < 0.06) delay = 130 + Math.random()*90;
-    else delay = 16 + Math.random()*42;
-    setTimeout(tick, delay);
-  }
-  tick();
-}
-
 // ── 피드 탭 상태 ─────────────────────────────────────────────────────
 var _feedTab = 'casual';
 var _cachedMe = null;
@@ -1687,7 +1669,7 @@ function makeCard(post, me, idx, likedSet, avatarMap) {
     '<span class="gc-ago">'+relTime(post.upd||post.at)+'</span>',
     '</div>',
     (isInfo && post.og_image)
-      ? '<img src="'+esc(post.og_image)+'" referrerpolicy="no-referrer" loading="lazy" onerror="this.remove()" style="width:40px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0;margin-left:auto;border:1px solid var(--card-border);">'
+      ? '<img src="'+esc(post.og_image)+'" id="ogimg-'+post.id+'" referrerpolicy="no-referrer" loading="lazy" onerror="this.remove()" title="'+esc(url||'')+'" style="width:40px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0;margin-left:auto;border:1px solid var(--card-border);cursor:pointer;">'
       : '',
     '</div>'
   ].join('');
@@ -1737,6 +1719,14 @@ function makeCard(post, me, idx, likedSet, avatarMap) {
       window.open(url, '_blank', 'noopener,noreferrer');
     };
     tileWrap.appendChild(urlTab);
+  }
+
+  var ogImgEl = post.og_image ? tile.querySelector('#ogimg-'+post.id) : null;
+  if (ogImgEl) {
+    ogImgEl.onclick = function(e) {
+      e.stopPropagation();
+      window.open(url, '_blank', 'noopener,noreferrer');
+    };
   }
 
   // dot node
@@ -2301,7 +2291,7 @@ async function detailPage(pid, me) {
   }
   wrap.appendChild(postEl);
   var bodyEl = postEl.querySelector('#d-post-body');
-  if (bodyEl) typewriterReveal(bodyEl, post.txt, function() { bodyEl.innerHTML = linkify(post.txt); });
+  if (bodyEl) bodyEl.innerHTML = linkify(post.txt);
   var cmtBtn = postEl.querySelector('#d-cmtbtn');
   if (cmtBtn) cmtBtn.onclick = function() {
     var inpEl = document.getElementById('d-inp');
@@ -2385,7 +2375,7 @@ async function detailPage(pid, me) {
         isOwner ? '<button class="del-btn" style="margin-left:0;" id="dc-'+c.id+'">삭제</button>' : '',
         '</div></div></div></div>'
       ].join('');
-      typewriterReveal(el.querySelector('#ctxt-'+c.id), c.txt);
+      el.querySelector('#ctxt-'+c.id).textContent = c.txt;
       el.querySelector('#rep-'+c.id).onclick = function() { replyTo = c.id; inp.placeholder='@'+c.nick+'에 답글'; inp.focus(); };
       if (isOwner) {
         el.querySelector('#dc-'+c.id).onclick = (function(cid) { return function() {
@@ -2422,7 +2412,7 @@ async function detailPage(pid, me) {
       isOwner ? '<button class="del-btn" style="margin-left:0;margin-top:4px;" id="dr-'+r.id+'">삭제</button>' : '',
       '</div></div></div>'
     ].join('');
-    typewriterReveal(el.querySelector('#rtxt-'+r.id), r.txt);
+    el.querySelector('#rtxt-'+r.id).textContent = r.txt;
     if (isOwner) {
       el.querySelector('#dr-'+r.id).onclick = (function(rid) { return function() {
         gModal('이 댓글을 삭제할까요?', async function() {
