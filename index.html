@@ -576,6 +576,28 @@ function extractUrl(txt) {
   return m ? m[0] : null;
 }
 
+// og:image를 못 가져왔을 때(fallback) 도메인에 맞는 서비스 아이콘을 대신 표시
+var SERVICE_ICONS = [
+  { test: /(^|\.)x\.com$|(^|\.)twitter\.com$/, icon: 'ti-brand-x', bg: '#000000' },
+  { test: /(^|\.)youtube\.com$|(^|\.)youtu\.be$/, icon: 'ti-brand-youtube', bg: '#FF0000' },
+  { test: /(^|\.)github\.com$/, icon: 'ti-brand-github', bg: '#181717' },
+  { test: /(^|\.)threads\.net$|(^|\.)threads\.com$/, icon: 'ti-brand-threads', bg: '#000000' },
+  { test: /(^|\.)spotify\.com$/, icon: 'ti-brand-spotify', bg: '#1DB954' },
+  { test: /(^|\.)notion\.so$|(^|\.)notion\.site$/, icon: 'ti-brand-notion', bg: '#000000' },
+  { test: /(^|\.)figma\.com$/, icon: 'ti-brand-figma', bg: '#0ACF83' },
+  { test: /(^|\.)medium\.com$/, icon: 'ti-brand-medium', bg: '#000000' }
+];
+function serviceIconHtml(url) {
+  var host = '';
+  try { host = new URL(url).hostname.toLowerCase(); } catch (e) {}
+  var match = SERVICE_ICONS.find(function(s) { return s.test.test(host); });
+  var icon = match ? match.icon : 'ti-world';
+  var bg = match ? match.bg : 'var(--card-text-faint)';
+  return '<div style="width:40px;height:40px;border-radius:8px;background:'+bg+';display:flex;align-items:center;justify-content:center;border:1px solid var(--card-border);">'
+    + '<i class="ti '+icon+'" style="font-size:19px;color:#fff;"></i></div>';
+}
+window.serviceIconHtml = serviceIconHtml;
+
 function extractTags(txt) {
   var m = (txt || '').match(/#([가-힣a-zA-Z0-9_]+)/g) || [];
   return m.map(function(t) { return t.slice(1).toLowerCase(); });
@@ -1668,8 +1690,12 @@ function makeCard(post, me, idx, likedSet, avatarMap) {
     '<span class="gc-who">'+nickHtml(post.nick, post.pseudo)+'</span>',
     '<span class="gc-ago">'+relTime(post.upd||post.at)+'</span>',
     '</div>',
-    (isInfo && post.og_image)
-      ? '<img src="'+esc(post.og_image)+'" id="ogimg-'+post.id+'" referrerpolicy="no-referrer" loading="lazy" onerror="this.remove()" title="'+esc(url||'')+'" style="width:40px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0;margin-left:auto;border:1px solid var(--card-border);cursor:pointer;">'
+    (isInfo && url)
+      ? '<div id="ogslot-'+post.id+'" style="width:40px;height:40px;flex-shrink:0;margin-left:auto;cursor:pointer;">'
+        + (post.og_image
+            ? '<img src="'+esc(post.og_image)+'" id="ogimg-'+post.id+'" data-url="'+esc(url)+'" referrerpolicy="no-referrer" loading="lazy" onerror="this.outerHTML=window.serviceIconHtml(this.getAttribute(&quot;data-url&quot;))" title="'+esc(url)+'" style="width:40px;height:40px;border-radius:8px;object-fit:cover;border:1px solid var(--card-border);">'
+            : serviceIconHtml(url))
+        + '</div>'
       : '',
     '</div>'
   ].join('');
@@ -1721,9 +1747,9 @@ function makeCard(post, me, idx, likedSet, avatarMap) {
     tileWrap.appendChild(urlTab);
   }
 
-  var ogImgEl = post.og_image ? tile.querySelector('#ogimg-'+post.id) : null;
-  if (ogImgEl) {
-    ogImgEl.onclick = function(e) {
+  var ogSlotEl = (isInfo && url) ? tile.querySelector('#ogslot-'+post.id) : null;
+  if (ogSlotEl) {
+    ogSlotEl.onclick = function(e) {
       e.stopPropagation();
       window.open(url, '_blank', 'noopener,noreferrer');
     };
