@@ -994,8 +994,15 @@ window.addEventListener('hashchange', function() {
     R.render();
   }
 });
-SB.auth.onAuthStateChange(function(event) {
-  if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') { _cachedMe = null; R.render(); }
+SB.auth.onAuthStateChange(function(event, session) {
+  if (event === 'SIGNED_OUT') { _cachedMe = null; R.render(); return; }
+  if (event === 'SIGNED_IN') {
+    // 탭 복귀 등으로 토큰이 갱신되며 같은 사용자에 대해 재발생하는 경우,
+    // 화면을 초기화하지 않아 보고 있던 페이지(예: 상세)가 로딩으로 되돌아가지 않게 함
+    if (_cachedMe && session && session.user && session.user.id === _cachedMe.uid) return;
+    _cachedMe = null;
+    R.render();
+  }
 });
 
 // ── 공통: 탭바 ──────────────────────────────────────────────────────
@@ -1047,7 +1054,7 @@ function authPage() {
     '<span style="display:block;font:700 24px \'JetBrains Mono\',monospace;color:var(--text);margin-top:14px;margin-bottom:20px;">gitmark</span>',
     '<div style="max-width:320px;text-align:center;padding:0 24px;margin-bottom:32px;">',
       '<p style="font:700 15px \'Inter\',\'Noto Sans KR\',sans-serif;color:var(--text);margin:0 0 8px;line-height:1.5;">일상의 파편들이 점이 되어 연결되다</p>',
-      '<p style="font:400 12.5px/1.6 \'Inter\',\'Noto Sans KR\',sans-serif;color:var(--text-muted);margin:0;">gitmark는 흩어진 일상의 파편들, 인터넷의 정보의 파편들을 한데 모아 우리만의 이야기로 엮는 새로운 형태의 소셜 서비스입니다.</p>',
+      '<p style="font:400 12.5px/1.6 \'Inter\',\'Noto Sans KR\',sans-serif;color:var(--text-muted);margin:0;">gitmark는 흩어진 일상의 파편들, 인터넷 링크의 파편들을 한데 모아 우리만의 이야기로 엮는 새로운 형태의 소셜 서비스입니다.</p>',
     '</div>',
   ].join('');
 
