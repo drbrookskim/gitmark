@@ -104,6 +104,16 @@
     ::-webkit-scrollbar { width: 0; }
     .screen { animation: fi .12s ease; }
     @keyframes fi { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; } }
+
+    /* 피드 → 상세 등 라우트 전환 (View Transitions API 지원 브라우저) */
+    ::view-transition-old(root) {
+      animation: vt-out .32s cubic-bezier(.4,0,.2,1) both;
+    }
+    ::view-transition-new(root) {
+      animation: vt-in .38s cubic-bezier(.16,1,.3,1) both;
+    }
+    @keyframes vt-out { to { opacity: 0; transform: scale(.97); } }
+    @keyframes vt-in { from { opacity: 0; transform: scale(1.03) translateY(6px); } }
     .btn-ghost {
       background: none; border: none; cursor: pointer;
       color: var(--text-muted); font-size: 11px; padding: 0;
@@ -828,6 +838,16 @@ function inkTransition(x, y, cb) {
   setTimeout(finish, 600); // 폴백: transitionend 미발화 시 강제 진행
 }
 
+// View Transitions API 지원 브라우저는 그쪽 전환에 맡기고(중복 연출 방지),
+// 미지원 브라우저에서만 잉크 리플로 대체
+function navigateWithTransition(x, y, path) {
+  if (document.startViewTransition) {
+    R.go(path);
+  } else {
+    inkTransition(x, y, function() { R.go(path); });
+  }
+}
+
 // B: 글자 해체 삭제 — 각 글자가 사방으로 흩어지며 소멸
 function scatterAndDelete(tile, onDone) {
   var txtEl = tile.querySelector('.tile-txt');
@@ -931,7 +951,13 @@ var R = {
     app.appendChild(newPage);
   }
 };
-window.addEventListener('hashchange', function() { R.render(); });
+window.addEventListener('hashchange', function() {
+  if (document.startViewTransition) {
+    document.startViewTransition(function() { return R.render(); });
+  } else {
+    R.render();
+  }
+});
 SB.auth.onAuthStateChange(function(event) {
   if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') { _cachedMe = null; R.render(); }
 });
@@ -1808,7 +1834,7 @@ function makeCard(post, me, idx, likedSet, avatarMap) {
   // 댓글 버튼 → 포스트 상세로 이동
   tile.querySelector('#cmtbtn-'+post.id).onclick = function(e) {
     e.stopPropagation();
-    inkTransition(e.clientX, e.clientY, function() { R.go('/post/'+post.id); });
+    navigateWithTransition(e.clientX, e.clientY, '/post/'+post.id);
   };
   // X(트위터) 공유
   tile.querySelector('#xbtn-'+post.id).onclick = function(e) {
@@ -1825,7 +1851,7 @@ function makeCard(post, me, idx, likedSet, avatarMap) {
     window.open('https://www.threads.net/intent/post?text=' + text, '_blank', 'noopener,noreferrer');
   };
   tile.onclick = function(e) {
-    inkTransition(e.clientX, e.clientY, function() { R.go('/post/'+post.id); });
+    navigateWithTransition(e.clientX, e.clientY, '/post/'+post.id);
   };
   tileWrap.appendChild(tile);
   row.appendChild(tileWrap);
