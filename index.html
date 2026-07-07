@@ -563,6 +563,8 @@ function absTime(ts) {
 }
 
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/\n/g,'<br>'); }
+// textarea 내용 등 줄바꿈을 그대로 유지해야 하는 곳에서 사용 (esc처럼 <br> 변환하지 않음)
+function escText(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 // Tabler 웹폰트에는 filled 하트가 없어, liked 상태는 직접 그린 SVG로 표시
 function heartIcon(liked) {
@@ -577,8 +579,42 @@ function avatar(nick, size) {
   return '<div class="avatar" style="width:'+size+'px;height:'+size+'px;background:'+c.avBg+';color:'+c.avText+';font-size:'+fs+'px;">'+getInitial(nick)+'</div>';
 }
 
-function nickHtml(nick, pseudo) {
-  return esc(nick) + (pseudo ? ' <span style="color:#ca8a04;font-size:10px;">(가명)</span>' : '');
+function nickHtml(nick, pseudo, uid) {
+  var inner = esc(nick) + (pseudo ? ' <span style="color:#ca8a04;font-size:10px;">(가명)</span>' : '');
+  if (!uid) return inner;
+  return '<span onclick="event.stopPropagation();showProfilePopup(\''+esc(uid)+'\')" style="cursor:pointer;">'+inner+'</span>';
+}
+
+// 아이디 클릭 시 아이디/상태메시지/자기소개를 보여주는 팝업
+async function showProfilePopup(uid) {
+  var ov = document.createElement('div');
+  ov.className = 'gm-overlay';
+  ov.innerHTML = [
+    '<div class="gm-dialog" style="max-width:300px;">',
+    '<div id="profpop-body" style="text-align:center;padding:20px 0;color:var(--text-dim);font-size:12px;">불러오는 중…</div>',
+    '<div class="gm-btns"><button class="gm-btn gm-btn-confirm" style="width:100%;">닫기</button></div>',
+    '</div>'
+  ].join('');
+  ov.querySelector('.gm-btn-confirm').onclick = function() { document.body.removeChild(ov); };
+  ov.onclick = function(e) { if (e.target === ov) document.body.removeChild(ov); };
+  document.body.appendChild(ov);
+
+  var { data } = await SB.rpc('get_public_profiles', { user_ids: [uid] });
+  var p = data && data[0];
+  var body = ov.querySelector('#profpop-body');
+  if (!body) return; // 팝업이 이미 닫힘
+  if (!p) { body.textContent = '프로필을 찾을 수 없어요.'; return; }
+  var av = p.avatar_url
+    ? '<img src="'+esc(p.avatar_url)+'" referrerpolicy="no-referrer" style="width:56px;height:56px;border-radius:50%;object-fit:cover;">'
+    : avatar(p.nick, 56);
+  body.innerHTML = [
+    '<div style="display:flex;flex-direction:column;align-items:center;gap:8px;">',
+    av,
+    '<div style="font-size:15px;font-weight:700;color:var(--text);">'+nickHtml(p.nick, p.pseudo)+'</div>',
+    p.status_msg ? '<div style="font-size:12px;color:var(--accent);font-weight:600;">'+esc(p.status_msg)+'</div>' : '',
+    p.bio ? '<div style="font-size:12px;color:var(--text-muted);line-height:1.6;white-space:pre-line;text-align:left;padding-top:10px;margin-top:4px;border-top:1px solid var(--border);width:100%;">'+esc(p.bio)+'</div>' : '',
+    (!p.status_msg && !p.bio) ? '<div style="font-size:11px;color:var(--text-dim);margin-top:4px;">아직 작성한 소개가 없어요.</div>' : ''
+  ].join('');
 }
 
 function extractUrl(txt) {
@@ -1713,7 +1749,7 @@ function makeCard(post, me, idx, likedSet, avatarMap) {
       ? '<img src="'+esc(avatarMap[post.uid])+'" referrerpolicy="no-referrer" style="width:28px;height:28px;border-radius:8px;object-fit:cover;flex-shrink:0;">'
       : '<div class="gc-av" style="background:'+avBg+';">'+getInitial(post.nick)+'</div>',
     '<div class="gc-meta">',
-    '<span class="gc-who">'+nickHtml(post.nick, post.pseudo)+'</span>',
+    '<span class="gc-who">'+nickHtml(post.nick, post.pseudo, post.uid)+'</span>',
     '<span class="gc-ago">'+relTime(post.upd||post.at)+'</span>',
     '</div>',
     (isInfo && url)
@@ -2315,7 +2351,7 @@ async function detailPage(pid, me) {
     postEl.innerHTML = [
       '<div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:14px;">',
       authorAvatar(42),
-      '<div><div style="font-size:13px;color:var(--text);">'+nickHtml(post.nick,post.pseudo)+'</div>',
+      '<div><div style="font-size:13px;color:var(--text);">'+nickHtml(post.nick,post.pseudo,post.uid)+'</div>',
       '<div style="font-size:11px;color:var(--text-muted);margin-top:3px;">'+relTime(post.upd||post.at)+'</div></div></div>',
       '<div id="d-post-body" style="font-size:15px;color:var(--text-body);line-height:1.7;word-break:break-word;margin-bottom:14px;min-height:1.7em;"></div>',
       '<div style="display:flex;align-items:center;gap:14px;">',
@@ -2419,7 +2455,7 @@ async function detailPage(pid, me) {
         '<div style="display:flex;gap:8px;">',
         cmtAvatar(c.uid, c.nick, 28),
         '<div style="flex:1;"><div style="display:flex;align-items:baseline;gap:6px;margin-bottom:4px;">',
-        '<span style="font-size:12px;color:var(--text);">'+nickHtml(c.nick,c.pseudo)+'</span>',
+        '<span style="font-size:12px;color:var(--text);">'+nickHtml(c.nick,c.pseudo,c.uid)+'</span>',
         '<span style="font-size:10px;color:var(--text-dim);">· '+relTime(c.at)+'</span></div>',
         '<div id="ctxt-'+c.id+'" style="font-size:12px;color:var(--text-body);line-height:1.55;word-break:break-word;min-height:1.2em;"></div>',
         '<div style="display:flex;gap:10px;margin-top:6px;">',
@@ -2458,7 +2494,7 @@ async function detailPage(pid, me) {
       '<div style="display:flex;gap:8px;">',
       cmtAvatar(r.uid, r.nick, 24),
       '<div style="flex:1;"><div style="display:flex;align-items:baseline;gap:6px;margin-bottom:3px;">',
-      '<span style="font-size:11px;color:var(--text);">'+nickHtml(r.nick,r.pseudo)+'</span>',
+      '<span style="font-size:11px;color:var(--text);">'+nickHtml(r.nick,r.pseudo,r.uid)+'</span>',
       '<span style="font-size:10px;color:var(--text-dim);">· '+relTime(r.at)+'</span></div>',
       '<div id="rtxt-'+r.id+'" style="font-size:11px;color:var(--text-faint);line-height:1.5;word-break:break-word;min-height:1.1em;"></div>',
       isOwner ? '<button class="del-btn" style="margin-left:0;margin-top:4px;" id="dr-'+r.id+'">삭제</button>' : '',
@@ -2556,6 +2592,9 @@ async function profilePage(me) {
   hdr.appendChild(logoutBtn);
   wrap.appendChild(hdr);
 
+  var { data: profExtra } = await SB.from('profiles').select('status_msg,bio').eq('id', me.uid).maybeSingle();
+  me = Object.assign({}, me, { status_msg: (profExtra && profExtra.status_msg) || '', bio: (profExtra && profExtra.bio) || '' });
+
   var prof = document.createElement('div');
   prof.style.cssText = 'display:flex;flex-direction:column;align-items:center;padding:32px 16px 24px;border-bottom:0.5px solid var(--border);gap:12px;';
 
@@ -2569,6 +2608,8 @@ async function profilePage(me) {
         '<div style="width:100%;max-width:260px;">',
         '<input id="prof-nick-inp" class="input-field" type="text" value="'+esc(me.nick)+'" maxlength="20" placeholder="닉네임 입력" style="text-align:center;margin-bottom:6px;">',
         '<div id="prof-nick-preview" style="text-align:center;font-size:11px;color:var(--text-muted);min-height:16px;margin-bottom:12px;">'+nickHtml(me.nick, me.pseudo)+'</div>',
+        '<input id="prof-status-inp" class="input-field" type="text" value="'+esc(me.status_msg)+'" maxlength="40" placeholder="상태메시지 (예: 오늘도 흔적 남기는 중)" style="text-align:center;margin-bottom:6px;">',
+        '<textarea id="prof-bio-inp" class="input-field" maxlength="150" placeholder="자기소개" style="width:100%;height:64px;resize:none;text-align:left;padding:8px;margin-bottom:12px;">'+escText(me.bio)+'</textarea>',
         '<div style="display:flex;gap:8px;">',
         '<button id="prof-save" style="flex:1;background:var(--bg-surface);border:0.5px solid var(--border);border-radius:6px;padding:8px;font-size:12px;color:var(--text);cursor:pointer;">저장</button>',
         '<button id="prof-cancel" class="btn-ghost" style="flex:1;padding:8px;border:0.5px solid var(--border);border-radius:6px;">취소</button>',
@@ -2577,6 +2618,8 @@ async function profilePage(me) {
       var inp = prof.querySelector('#prof-nick-inp');
       var preview = prof.querySelector('#prof-nick-preview');
       var avWrap = prof.querySelector('#prof-av-wrap');
+      var statusInp = prof.querySelector('#prof-status-inp');
+      var bioInp = prof.querySelector('#prof-bio-inp');
       inp.focus(); inp.select();
       inp.oninput = function() {
         var v = this.value.trim() || me.nick;
@@ -2590,8 +2633,11 @@ async function profilePage(me) {
         var newNick = inp.value.trim();
         if (!newNick) { inp.focus(); return; }
         var pseudo = isPseudo(newNick);
+        var newStatus = statusInp.value.trim();
+        var newBio = bioInp.value.trim();
         await SB.rpc('update_nick', { p_uid: me.uid, p_nick: newNick, p_pseudo: pseudo });
-        me = Object.assign({}, me, { nick: newNick, pseudo: pseudo });
+        await SB.from('profiles').update({ status_msg: newStatus || null, bio: newBio || null }).eq('id', me.uid);
+        me = Object.assign({}, me, { nick: newNick, pseudo: pseudo, status_msg: newStatus, bio: newBio });
         renderProf(false);
       };
       prof.querySelector('#prof-cancel').onclick = function() { renderProf(false); };
@@ -2605,6 +2651,12 @@ async function profilePage(me) {
       var emailLine = me.email
         ? '<div style="font-size:10px;color:var(--text-dim);margin-top:2px;">'+esc(me.email)+'</div>'
         : '';
+      var statusLine = me.status_msg
+        ? '<div style="font-size:12px;color:var(--accent);font-weight:600;margin-top:6px;">'+esc(me.status_msg)+'</div>'
+        : '';
+      var bioLine = me.bio
+        ? '<div style="font-size:12px;color:var(--text-muted);line-height:1.6;white-space:pre-line;margin-top:8px;max-width:280px;">'+esc(me.bio)+'</div>'
+        : '';
       prof.innerHTML = [
         gAvatar,
         '<div style="text-align:center;">',
@@ -2614,6 +2666,8 @@ async function profilePage(me) {
         '</div>',
         gNameLine,
         emailLine,
+        statusLine,
+        bioLine,
         '</div>'
       ].join('');
       prof.querySelector('#prof-edit-btn').onclick = function() { renderProf(true); };
