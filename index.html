@@ -612,7 +612,7 @@ async function showProfilePopup(uid) {
     av,
     '<div style="font-size:15px;font-weight:700;color:var(--text);">'+nickHtml(p.nick, p.pseudo)+'</div>',
     p.status_msg ? '<div style="font-size:12px;color:var(--accent);font-weight:600;">'+esc(p.status_msg)+'</div>' : '',
-    p.bio ? '<div style="font-size:12px;color:var(--text-muted);line-height:1.6;white-space:pre-line;text-align:left;padding-top:10px;margin-top:4px;border-top:1px solid var(--border);width:100%;">'+esc(p.bio)+'</div>' : '',
+    p.bio ? '<div style="font-size:12px;color:var(--text-muted);line-height:1.6;white-space:pre-line;text-align:center;padding-top:10px;margin-top:4px;border-top:1px solid var(--border);width:100%;">'+esc(p.bio)+'</div>' : '',
     (!p.status_msg && !p.bio) ? '<div style="font-size:11px;color:var(--text-dim);margin-top:4px;">아직 작성한 소개가 없어요.</div>' : ''
   ].join('');
 }
@@ -1752,9 +1752,11 @@ function makeCard(post, me, idx, likedSet, avatarMap) {
 
   var headHtml = [
     '<div class="gc-head">',
-    (avatarMap && avatarMap[post.uid])
-      ? '<img src="'+esc(avatarMap[post.uid])+'" referrerpolicy="no-referrer" style="width:28px;height:28px;border-radius:8px;object-fit:cover;flex-shrink:0;">'
-      : '<div class="gc-av" style="background:'+avBg+';">'+getInitial(post.nick)+'</div>',
+    '<span onclick="event.stopPropagation();showProfilePopup(\''+esc(post.uid)+'\')" style="cursor:pointer;flex-shrink:0;">'
+      + ((avatarMap && avatarMap[post.uid])
+          ? '<img src="'+esc(avatarMap[post.uid])+'" referrerpolicy="no-referrer" style="width:28px;height:28px;border-radius:8px;object-fit:cover;display:block;">'
+          : '<div class="gc-av" style="background:'+avBg+';">'+getInitial(post.nick)+'</div>')
+      + '</span>',
     '<div class="gc-meta">',
     '<span class="gc-who">'+nickHtml(post.nick, post.pseudo, post.uid)+'</span>',
     '<span class="gc-ago">'+relTime(post.upd||post.at)+'</span>',
@@ -2344,9 +2346,10 @@ async function detailPage(pid, me) {
     authorAvatarUrl = authorProf && authorProf.avatar_url ? authorProf.avatar_url : null;
   }
   function authorAvatar(size) {
-    return authorAvatarUrl
-      ? '<img src="'+esc(authorAvatarUrl)+'" referrerpolicy="no-referrer" style="width:'+size+'px;height:'+size+'px;border-radius:50%;object-fit:cover;flex-shrink:0;">'
+    var inner = authorAvatarUrl
+      ? '<img src="'+esc(authorAvatarUrl)+'" referrerpolicy="no-referrer" style="width:'+size+'px;height:'+size+'px;border-radius:50%;object-fit:cover;display:block;">'
       : avatar(post.nick, size);
+    return '<span onclick="event.stopPropagation();showProfilePopup(\''+esc(post.uid)+'\')" style="cursor:pointer;flex-shrink:0;display:inline-block;">'+inner+'</span>';
   }
 
   var postEl = document.createElement('div');
@@ -2433,9 +2436,10 @@ async function detailPage(pid, me) {
   }
 
   function cmtAvatar(uid, nick, size) {
-    return cmtAvatarMap[uid]
-      ? '<img src="'+esc(cmtAvatarMap[uid])+'" referrerpolicy="no-referrer" style="width:'+size+'px;height:'+size+'px;border-radius:50%;object-fit:cover;flex-shrink:0;">'
+    var inner = cmtAvatarMap[uid]
+      ? '<img src="'+esc(cmtAvatarMap[uid])+'" referrerpolicy="no-referrer" style="width:'+size+'px;height:'+size+'px;border-radius:50%;object-fit:cover;display:block;">'
       : avatar(nick, size);
+    return '<span onclick="event.stopPropagation();showProfilePopup(\''+esc(uid)+'\')" style="cursor:pointer;flex-shrink:0;display:inline-block;">'+inner+'</span>';
   }
 
   function appendCommentEl(c) {
