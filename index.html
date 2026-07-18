@@ -2076,7 +2076,7 @@ function writePage(me) {
   var ta = document.createElement('textarea');
   ta.id = 'write-ta';
   ta.placeholder = _writeType === 'link' ? '공유를 마크하세요.' : '일상을 마크하세요.';
-  ta.style.cssText = 'font-size:15px;line-height:1.7;resize:vertical;min-height:196px;max-height:60vh;background:transparent;border:none;outline:none;width:100%;overflow-y:auto;';
+  ta.style.cssText = 'font-size:15px;line-height:1.7;resize:none;min-height:196px;max-height:60vh;background:transparent;border:none;outline:none;width:100%;overflow-y:auto;';
   if (_writeDraft) ta.value = _writeDraft;
   ta.oninput = function() {
     _writeDraft = this.value;
@@ -2088,6 +2088,38 @@ function writePage(me) {
     if (typeof updateCatPosition === 'function') updateCatPosition();
   };
   taWrap.appendChild(ta);
+
+  // 텍스트 박스 하단 중앙 resize 핸들 (네이티브 핸들은 항상 우하단이라 직접 구현)
+  var resizeHandle = document.createElement('div');
+  resizeHandle.style.cssText = 'position:absolute;left:50%;bottom:2px;transform:translateX(-50%);width:36px;height:5px;border-radius:3px;background:var(--border);cursor:ns-resize;z-index:3;';
+  taWrap.appendChild(resizeHandle);
+  (function() {
+    var startY, startH;
+    function onMove(e) {
+      var y = e.touches ? e.touches[0].clientY : e.clientY;
+      var min = parseFloat(ta.style.minHeight) || 196;
+      var max = parseFloat(getComputedStyle(ta).maxHeight);
+      ta.style.height = Math.min(max, Math.max(min, startH + (y - startY))) + 'px';
+      if (typeof updateCatPosition === 'function') updateCatPosition();
+    }
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onUp);
+    }
+    function onDown(e) {
+      e.preventDefault();
+      startY = e.touches ? e.touches[0].clientY : e.clientY;
+      startH = ta.offsetHeight;
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+      document.addEventListener('touchmove', onMove, { passive: false });
+      document.addEventListener('touchend', onUp);
+    }
+    resizeHandle.addEventListener('mousedown', onDown);
+    resizeHandle.addEventListener('touchstart', onDown, { passive: false });
+  })();
 
   // 글자 수 카운트 — 우하단 고정
   var cntEl = document.createElement('span');
